@@ -1,5 +1,19 @@
 {
-  "width": 40,
-  "height": 10
+  "width": 30,
+  "height": 11,
+  "tile_width": 32,
+  "tile_height": 32,
+  "start_health": 50,
+  "start_gold": 0,
+  "start_lumber": 0,
+  "start_income": 20,
+  "income_frequency": 10,
+  "ticks_per_second": 10,
+  "fps": 10,
+  "ups": 100000000,
+  "statps": 1,
+  "income_ratio": 0.20,
+  "kill_gold_ratio": 0.10,
+  "ai": ["DQN.py", "DQN.py"]
 
 }
