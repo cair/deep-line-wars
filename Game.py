@@ -6,6 +6,7 @@ from Building import Building
 from GUI import GUI
 from Player import Player
 from Unit import Unit
+from rl.DQN import DQN
 
 
 def matprint(mat, fmt="g"):
@@ -32,12 +33,17 @@ class Game:
         self.map = np.zeros((5, self.config["width"], self.config["height"]))
         self.mid = None
         self.setup_environment()
+        self.ai = self.load_ai()
         self.gui = GUI(self)
         self.winner = None
+
         p1 = Player(1, self)
         p2 = Player(2, self)
         p1.opponent = p2
         p2.opponent = p1
+        p1.ai = self.ai[0]
+        p2.ai = self.ai[1]
+
         self.players = [p1, p2]
 
         self.statistics = {
@@ -52,6 +58,13 @@ class Game:
 
         self.frame_counter = 0
         self.update_counter = 0
+
+    def load_ai(self):
+        # TODO
+        ais = []
+        for ai in self.config["ai"]:
+            ais.append(DQN())
+        return ais
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -130,7 +143,6 @@ class Game:
     def update_statistics(self):
         self.statistics[self.winner.id] += 1
 
-
     def reset(self):
 
         self.winner = None
@@ -143,15 +155,15 @@ class Game:
         self.map[2].fill(0)
         self.ticks = 0
 
-
-
-
     def update(self):
         if self.winner:
             self.update_statistics()
             self.reset()
 
         for player in self.players:
+
+            if player.ai:
+                player.ai.step(self.map)
 
             # Check for winner
             if player.health <= 0:

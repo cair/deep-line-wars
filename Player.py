@@ -19,6 +19,7 @@ class Player:
         self.buildings = []
         self.spawn_queue = []
         self.opponent = None
+        self.ai = None
 
         self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
         self.income_counter = self.income_frequency
