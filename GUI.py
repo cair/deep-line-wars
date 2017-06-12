@@ -126,6 +126,13 @@ class GUI:
         self.screen.blit(p1, (self.gw - 180, self.top_height + self.game_height + 40, 100, 100))
         self.screen.blit(p2, (self.gw - 80, self.top_height + self.game_height + 40, 100, 100))
 
+        for player in self.game.players:
+            pygame.draw.rect(self.screen, (0, 255, 0), [
+                player.virtual_cursor_x * 32,
+                self.top_height + (player.virtual_cursor_y * 32), 32, 32
+            ])
+
+
     def draw_units(self):
         # Get all units on map
         for player in self.game.players:

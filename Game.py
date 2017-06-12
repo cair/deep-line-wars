@@ -43,6 +43,10 @@ class Game:
         p2.opponent = p1
         p1.ai = self.ai[0]
         p2.ai = self.ai[1]
+        self.ai[0].player = p1
+        self.ai[1].player = p2
+        self.ai[0].game = self
+        self.ai[1].game = self
 
         self.players = [p1, p2]
 
@@ -143,6 +147,9 @@ class Game:
     def update_statistics(self):
         self.statistics[self.winner.id] += 1
 
+    def observe(self):
+        return self.map
+
     def reset(self):
 
         self.winner = None
@@ -150,6 +157,12 @@ class Game:
         p2 = Player(2, self)
         p1.opponent = p2
         p2.opponent = p1
+        p1.ai = self.ai[0]
+        p2.ai = self.ai[1]
+        self.ai[0].player = p1
+        self.ai[1].player = p2
+        self.ai[0].game = self
+        self.ai[1].game = self
         self.players = [p1, p2]
         self.map[1].fill(0)
         self.map[2].fill(0)
