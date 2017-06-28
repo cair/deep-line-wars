@@ -23,7 +23,6 @@ class Player:
         self.opponent = None
         self.ai = None
 
-
         self.stat_spawn_counter = 0
 
         self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
@@ -31,7 +30,6 @@ class Player:
 
         self.spawn_x = 0 if i is 1 else game.map[0].shape[0]-1
         self.goal_x = game.map[0].shape[0]-1 if i is 1 else 0
-
 
         self.action_space = [
             #{"action": "Select Building 0", "type": "building_select", "value": 0},
@@ -64,6 +62,24 @@ class Player:
         elif i == 2:
             self.direction = -1
 
+
+    def available_buildings(self):
+        return [b for b in self.game.building_shop if b.level <= self.level]
+
+    def rel_pos_to_abs(self, x, y):
+        if self.direction == -1:
+            return self.game.config["width"] - x - 1, y
+
+        return x, y
+
+    def get_building_idx(self, idx, last_if_error=True):
+        avb = self.available_buildings()
+        try:
+            return avb[idx]
+        except IndexError as e:
+            if last_if_error:
+                return avb.pop()
+
     def get_actions(self, idx):
         return self.action_space[idx]
 
@@ -73,32 +89,94 @@ class Player:
     def get_score(self):
         return (self.stat_spawn_counter + self.income) * (100 * self.level)
 
-    def do_action(self, a):
+    def can_afford_unit(self, u):
+        if u.gold_cost <= self.gold:
+            return True
+        return False
+
+
+    def available_units(self):
+        return [u for u in self.game.unit_shop if u.level <= self.level]
+
+    def can_afford_idx(self, idx):
+        available_buildings = self.available_buildings()
+        if idx >= len(available_buildings):
+            if available_buildings.pop().gold_cost > self.gold:
+                return False
+            return True
+
+        if available_buildings[idx].gold_cost > self.gold:
+            return False
+
+        return True
+
+    def do_generic_action(self, a):
+        # 0 = spawn
+        # 1 = build
+
+        if a == 0:
+            # Spawn random unit
+            available = [u for u in self.available_units() if self.can_afford_unit(u)]
+            if len(available) == 0:
+                return -0.1
+
+            ridx = random.randint(0, len(available) - 1)
+            self.spawn((ridx, available[ridx]))
+            return 1
+        elif a == 1:
+            # build building at random loc
+            available = [b for idx, b in enumerate(self.available_buildings()) if self.can_afford_idx(idx)]
+            if len(available) == 0:
+                return -0.1
+
+            ridx = random.randint(0, len(available) - 1)
+            r_x = random.randint(0, (self.game.config["width"] / 2) - 1)
+            r_y = random.randint(0, self.game.config["height"] - 1)
+
+            r_x, r_y = self.rel_pos_to_abs(r_x, r_y)
+            self.build(r_x, r_y, available[ridx])
+            return 1
+
+
+
+
+
+    def do_action(self, aidx):
+        a = self.action_space[aidx]
         #if a["type"] == "building_select":
         #    self.game.gui.selected_building = a["value"]
         #if a["type"] == "unit_select":
         #    self.game.gui.selected_unit = a["value"]
         try:
             if a["type"] == "cursor_y":
+                prev = self.virtual_cursor_y
                 self.virtual_cursor_y = max(min(self.game.config["height"] - 1, self.virtual_cursor_y + a["value"]), 0)
+                if self.virtual_cursor_y == prev:
+                    return -1
+                return 0.1
             elif a["type"] == "cursor_x":
+                prev = self.virtual_cursor_x
                 self.virtual_cursor_x = max(min(self.game.config["width"] - 1, self.virtual_cursor_x + a["value"]), 1)
+                if self.virtual_cursor_x == prev:
+                    return -1
+
+                return 0.1
             elif a["type"] == "purchase_unit":
-                self.spawn(
+                succ = self.spawn(
                     (a["value"], self.game.unit_shop[a["value"]])
                 )
+                return 0.1 if succ else -1
             elif a["type"] == "purchase_building":
-                self.build(
+                succ = self.build(
                     self.virtual_cursor_x,
                     self.virtual_cursor_y,
                     self.game.building_shop[a["value"]]
                 )
+                return 0.1 if succ else -1
         except IndexError as e:
             return -1  # Punish invalid move
 
-
-        return 1
-
+        return None
 
     def update(self):
 
@@ -142,12 +220,22 @@ class Player:
         else:
             print("Cannot afford levelup!")
 
+    def enemy_unit_reached_base(self, u):
+
+        if self.direction == 1 and u.x < self.game.mid[0]:
+            return True
+        elif self.direction == -1 and u.x > self.game.mid[0]:
+
+            return True
+        else:
+            return False
+
     def build(self, x, y, building):
 
         # Restrict players from placing towers on mid area and on opponents side
-        if self.direction == 1 and not all(i > x for i in self.game.mid):
+        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config["build_anywhere"]:
             return False
-        elif self.direction == -1 and not all(i < x for i in self.game.mid):
+        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config["build_anywhere"]:
             return False
         elif x == 0 or x == self.game.config["width"] - 1:
             return False
@@ -173,6 +261,8 @@ class Player:
         self.game.map[3][x, y] = self.id
 
         self.buildings.append(building)
+
+        return True
 
     def spawn(self, data):
         idx = data[0] + 1

@@ -10,10 +10,16 @@
   "income_frequency": 10,
   "ticks_per_second": 10,
   "fps": 10,
-  "ups": 10,
+  "ups": 1000000,
+  "max_aps": 10,
   "statps": 1,
   "income_ratio": 0.20,
   "kill_gold_ratio": 0.10,
-  "ai": ["DQN.py", "DQN.py"]
+  "ai": [
+    ["rl.dqn_div.Main", "DivideAndWin"],
+    ["rl.rnd.Main", "Algorithm"]
+  ],
+  "state_repr": "heatmap",
+  "build_anywhere": true
 
 }

@@ -15,7 +15,7 @@ class GUI:
         self.selected_unit_type = None
         self.selected_building = 0
         self.top_height = 50
-        self.bot_height = 128
+        self.bot_height = 256
 
         self.gw = self.game.config["width"] * self.game.config["tile_width"]
         self.game_height = (self.game.config["height"] * self.game.config["tile_height"]) # Height of game graphics
@@ -63,6 +63,18 @@ class GUI:
         self.screen.blit(level, (self.gw - 295, self.top_height + self.game_height + 10, 100, 100))
         self.screen.blit(gold, (self.gw - 295, self.top_height + self.game_height + 40, 100, 100))
         self.screen.blit(lumber, (self.gw - 295, self.top_height + self.game_height + 60, 100, 100))
+
+
+    def draw_heat_maps(self):
+        for i, p in enumerate(self.game.players):
+            data = self.game.generate_heatmap(p)
+            data *= 255
+            tmp_surf = pygame.Surface((data.shape[0], data.shape[1]))
+            pygame.surfarray.blit_array(tmp_surf, data)
+            tmp_surf = pygame.transform.scale(tmp_surf, (100, 100))
+            tmp_surf = pygame.transform.rotate(tmp_surf, 90)
+            self.screen.blit(tmp_surf, (759 + (i * 100) + i, 510))
+
 
     def draw_unit_select(self):
         self.unit_list.clear()
@@ -165,12 +177,14 @@ class GUI:
             p_gold = self.font.render("Gold: %s" % player.gold, 1, (255, 255, 0))
             p_lumber = self.font.render("Lumber: %s" % player.lumber, 1, (255, 255, 0))
             p_income = self.bfont.render("Income: %s" % player.income, 1, (255, 255, 0))
+            p_winner = self.font.render("W: %s | %f" % (self.game.statistics[player.id], (self.game.statistics[player.id] / max(1, sum(self.game.statistics.values())))), 1, (255, 255, 0))
 
             self.screen.blit(p_name, (x_pos[i], 10))
             self.screen.blit(p_health, (x_pos[i] + 120, 5))
             self.screen.blit(p_gold, (x_pos[i] + 120, 20))
             self.screen.blit(p_lumber, (x_pos[i] + 120, 35))
             self.screen.blit(p_income, (x_pos[i] + 240, 10))
+            self.screen.blit(p_winner, (x_pos[i] + 240, 35))
 
     def draw_game_clock(self):
         # Draw Game-Clock
@@ -186,6 +200,7 @@ class GUI:
         self.draw_unit_select()
         self.draw_building_select()
         self.draw_level_up()
+        self.draw_heat_maps()
 
         pygame.display.flip()
 
