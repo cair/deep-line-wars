@@ -19,7 +19,8 @@
     ["rl.dqn_div.Main", "DivideAndWin"],
     ["rl.rnd.Main", "Algorithm"]
   ],
+  "branch_rl_player": 0,
+  "branch_rl": [],
   "state_repr": "heatmap",
   "build_anywhere": true
-
 }
