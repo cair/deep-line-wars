@@ -2,46 +2,46 @@
   {
     "name": "Militia",
     "icon": "militia.png",
-    "health": 10,
-    "armor": 1,
+    "health": 20,
+    "armor": 2,
     "speed": 1,
     "type": 0,
     "level": 0,
     "gold_drop": 1,
-    "gold_cost": 5
+    "gold_cost": 10
   },
   {
     "name": "Footman",
     "icon": "footman.png",
-    "health": 20,
-    "armor": 1,
+    "health": 40,
+    "armor": 4,
     "speed": 1,
     "type": 0,
     "level": 0,
     "gold_drop": 1,
-    "gold_cost": 10
+    "gold_cost": 20
   },
   {
     "name": "Grunt",
     "icon": "grunt.png",
-    "health": 20,
-    "armor": 1,
+    "health": 60,
+    "armor": 4,
     "speed": 1,
     "type": 0,
     "level": 0,
     "gold_drop": 1,
-    "gold_cost": 10
+    "gold_cost": 40
   },
   {
     "name": "Armored Grunt",
     "icon": "armored_grunt.png",
-    "health": 30,
-    "armor": 1,
-    "speed": 1,
+    "health": 100,
+    "armor": 6,
+    "speed": 2,
     "type": 0,
     "level": 0,
     "gold_drop": 1,
-    "gold_cost": 25
+    "gold_cost": 100
   }
 
 
