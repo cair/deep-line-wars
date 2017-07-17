@@ -22,5 +22,11 @@
   "branch_rl_player": 0,
   "branch_rl": [],
   "state_repr": "heatmap",
-  "build_anywhere": true
+  "build_anywhere": true,
+  "web": {
+    "enabled": true,
+    "update_interval": 5,
+    "state_images": true,
+    "nn_images": true
+  }
 }

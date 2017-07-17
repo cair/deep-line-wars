@@ -1,46 +1,41 @@
+import io
 import json
 import time
 
 import numpy as np
 from PIL import Image
-
+import base64
 from Building import Building
 from GUI import GUI
 from Player import Player
 from Unit import Unit
+from web.Server import Webserver
 import importlib
 import matplotlib.pyplot as plt
 import scipy.misc
-
-def matprint(mat, fmt="g"):
-    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
-    for x in mat:
-        for i, y in enumerate(x):
-            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
-        print("")
 
 
 class Game:
 
     def __init__(self):
 
-        self.ticks = 0
+        # Load configuration
+        self.config = json.load(open("./config.json", "r"))
+        self.unit_data = json.load(open("./units.json", "r"))
+        self.building_data = json.load(open("./buildings.json", "r"))
 
-        # HEat map
-        """self.hm_color_nothing = [int(255 * _) for _ in plt.cm.jet(0.0)][0:3]
-        self.hm_color_building = [int(255 * _) for _ in plt.cm.jet(1.0)][0:3]
-        self.hm_color_enemy_unit = [int(255 * _) for _ in plt.cm.jet(0.5)][0:3]
-        self.hm_color_cursor = [int(255 * _) for _ in plt.cm.jet(0.2)][0:3]"""
+        # Start web-server
+        self.web_server = Webserver() if self.config["web"]["enabled"] else None
 
+
+        # Heatmap
         self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
         self.hm_color_building = plt.cm.jet(1.0)[0:3]
         self.hm_color_enemy_unit = plt.cm.jet(0.5)[0:3]
         self.hm_color_cursor = plt.cm.jet(0.2)[0:3]
 
+        self.ticks = 0
         self.running = False
-        self.config = json.load(open("./config.json", "r"))
-        self.unit_data = json.load(open("./units.json", "r"))
-        self.building_data = json.load(open("./buildings.json", "r"))
 
         # Z = 0 - Environmental Layer
         # Z = 1 - Unit Layer
@@ -253,6 +248,15 @@ class Game:
         #img = Image.fromarray(m, "RGBA")
         #img.save("heatmap_%s_%s.jpg" % (player.id, 0))
         #scipy.misc.toimage(m, cmin=0.0).save("heatmap_%s_%s.png" % (player.id, self.ticks))
+
+        if self.web_server:
+            image = scipy.misc.toimage(m, cmin=0.0)
+            in_mem_file = io.BytesIO()
+            image.save(in_mem_file, format="PNG")
+            base64_encoded_result_bytes = base64.b64encode(in_mem_file.getvalue())
+            base64_encoded_result_str = base64_encoded_result_bytes.decode('ascii')
+
+            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})
 
         return m
 
