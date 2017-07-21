@@ -1,7 +1,10 @@
 import random
 
 import keras
+from keras import backend as K
 import numpy as np
+from keras import Input
+from keras.engine import Model
 from tensorflow.contrib.keras.python.keras.layers.convolutional import Conv2D
 from tensorflow.contrib.keras.python.keras.layers.core import Activation, Flatten, Dense
 from tensorflow.contrib.keras.python.keras.models import Sequential
@@ -129,9 +132,24 @@ class DivideAndWin:
 
     def build_model(self):
         # Neural Net for Deep-Q learning Model
-        model = Sequential()
+        input_layer = Input(shape=self.state_size, name='image_input')
+        conv1 = Conv2D(32, (8, 8), strides=(1, 1), activation='relu')(input_layer)
+        conv2 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv1)
+        conv3 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv2)
+        conv_flatten = Flatten()(conv3)
+        fc1 = Dense(512)(conv_flatten)
+        advantage = Dense(self.action_size)(fc1)
+        fc2 = Dense(512)(conv_flatten)
+        value = Dense(1)(fc2)
+        policy = keras.layers.merge([advantage, value], mode=lambda x: x[0]-K.mean(x[0])+x[1], output_shape=(self.action_size,))
+        model = Model(inputs=[input_layer], outputs=[policy])
 
-        model.add(Conv2D(32, (8, 8), strides=(1, 1), data_format='channels_first', padding='same', input_shape=self.state_size))
+        optimizer = keras.optimizers.adam(self.LEARNING_RATE)
+        model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
+
+
+
+        """model.add(Conv2D(32, (8, 8), strides=(1, 1), data_format='channels_first', padding='same', input_shape=self.state_size))
         model.add(Activation('relu'))
         #model.add(Conv2D(64, (4, 4), strides=(1, 1), padding='same'))
         #model.add(Activation('relu'))
@@ -143,7 +161,7 @@ class DivideAndWin:
         model.add(Dense(self.action_size))
 
         adam = Adam(lr=self.LEARNING_RATE)
-        model.compile(loss='mse', optimizer=adam)
+        model.compile(loss='mse', optimizer=adam)"""
         return model
 
     def load(self, name):
