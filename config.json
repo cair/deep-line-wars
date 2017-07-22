@@ -16,7 +16,7 @@
   "income_ratio": 0.20,
   "kill_gold_ratio": 0.10,
   "ai": [
-    ["rl.dqn_div.Main", "DivideAndWin"],
+    ["rl.dqn_1.Main", "Algorithm"],
     ["rl.rnd.Main", "Algorithm"]
   ],
   "branch_rl_player": 0,
@@ -24,7 +24,7 @@
   "state_repr": "heatmap",
   "build_anywhere": true,
   "web": {
-    "enabled": true,
+    "enabled": false,
     "update_interval": 5,
     "state_images": true,
     "nn_images": true

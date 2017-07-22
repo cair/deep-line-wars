@@ -6,26 +6,56 @@ class GUI:
 
     def __init__(self, game):
         pygame.init()
+
+        # Game variables
+        self.game = game
+
+        # Font definition
         self.font = pygame.font.SysFont("Comic Sans MS", 25)
         self.bfont = pygame.font.SysFont("Comic Sans MS", 40)
 
-        self.game = game
+        # GUI Interaction variables
         self.selected_player = 0
         self.selected_unit = 0
         self.selected_unit_type = None
         self.selected_building = 0
-        self.top_height = 50
-        self.bot_height = 256
 
-        self.gw = self.game.config["width"] * self.game.config["tile_width"]
-        self.game_height = (self.game.config["height"] * self.game.config["tile_height"]) # Height of game graphics
-        self.gh = self.bot_height + self.top_height + self.game_height
-        self.screen = pygame.display.set_mode((self.gw, self.gh))
+        # Size definitions
+        self.stat_panel_height = 50
+        self.bot_panel_height = 256
+        self.game_grid_height = self.game.config["height"] * self.game.config["tile_height"]  # Height of game graphics
+        self.game_width = self.game.config["width"] * self.game.config["tile_width"]
+        self.plot_panel_height = int(self.game_width / 3)
+        self.game_height = self.bot_panel_height + self.stat_panel_height + self.game_grid_height + self.plot_panel_height
+
+        # Position definitions
+        self.plot_surface_x = 0
+        self.plot_surface_y = self.stat_panel_height + self.game_grid_height + self.bot_panel_height
+
+        # PYGame variables
+        self.screen = pygame.display.set_mode((self.game_width, self.game_height))
         self.background = pygame.Surface(self.screen.get_size())
-        self.background =  self.background.convert()
+        self.background = self.background.convert()
         self.background.fill((0, 0, 0))
+        self.loss_surface = None  # surface which can contain a pyplot over loss
+        self.action_distribution = None
+        self.plot_surface = pygame.Surface((self.game_width, self.plot_panel_height))
+        self.plot_surface.fill((128, 128, 128))
 
         pygame.display.set_caption("DeepLineWars v1.0")
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         self.tiles = {
             0: (0, 123, 12),  # Grass
@@ -34,9 +64,9 @@ class GUI:
             3: (0, 255, 255)
         }
 
-        self.btn_p1 = pygame.Rect(self.gw - 100, self.top_height + self.game_height, 100, 100)
-        self.btn_p2 = pygame.Rect(self.gw - 201, self.top_height + self.game_height, 100, 100)
-        self.btn_level_up = pygame.Rect(self.gw - 302, self.top_height + self.game_height, 100, 100)
+        self.btn_p1 = pygame.Rect(self.game_width - 100, self.stat_panel_height + self.game_grid_height, 100, 100)
+        self.btn_p2 = pygame.Rect(self.game_width - 201, self.stat_panel_height + self.game_grid_height, 100, 100)
+        self.btn_level_up = pygame.Rect(self.game_width - 302, self.stat_panel_height + self.game_grid_height, 100, 100)
         self.btn_spawn = None
         self.unit_list = []
         self.building_list = []
@@ -45,7 +75,7 @@ class GUI:
         self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
         for x in range(self.game.map[0].shape[0]):
             for y in range(self.game.map[0].shape[1]):
-                rect = pygame.Rect(x*32, (y*32) + self.top_height, 32, 32)
+                rect = pygame.Rect(x * 32, (y*32) + self.stat_panel_height, 32, 32)
                 self.map_rects[x].append((rect, x, y, self.game.map[0][x][y]))
 
     def player(self):
@@ -54,15 +84,20 @@ class GUI:
     def caption(self):
         pygame.display.set_caption("DeepLineWars v1.0 [%sfps|%sups]" % (self.game.frame_counter, self.game.update_counter))
 
+    def draw_loss(self):
+        if self.loss_surface:
+            self.plot_surface.blit(self.loss_surface, (0, 0))
+            self.plot_surface.blit(self.action_distribution, (400, 0))
+
     def draw_level_up(self):
         pygame.draw.rect(self.screen, (0, 255, 255), self.btn_level_up)
         level = self.font.render("^ Level %s ^" % (self.player().level + 1), 1, (255, 0, 0))
         gold = self.font.render("Gold: %s" % (self.player().levels[0][0]), 1, (255, 0, 0))
         lumber = self.font.render("Lumber: %s" % (self.player().levels[0][1]), 1, (255, 0, 0))
 
-        self.screen.blit(level, (self.gw - 295, self.top_height + self.game_height + 10, 100, 100))
-        self.screen.blit(gold, (self.gw - 295, self.top_height + self.game_height + 40, 100, 100))
-        self.screen.blit(lumber, (self.gw - 295, self.top_height + self.game_height + 60, 100, 100))
+        self.screen.blit(level, (self.game_width - 295, self.stat_panel_height + self.game_grid_height + 10, 100, 100))
+        self.screen.blit(gold, (self.game_width - 295, self.stat_panel_height + self.game_grid_height + 40, 100, 100))
+        self.screen.blit(lumber, (self.game_width - 295, self.stat_panel_height + self.game_grid_height + 60, 100, 100))
 
 
     def draw_heat_maps(self):
@@ -74,7 +109,6 @@ class GUI:
             tmp_surf = pygame.transform.scale(tmp_surf, (100, 100))
             tmp_surf = pygame.transform.rotate(tmp_surf, 90)
             self.screen.blit(tmp_surf, (759 + (i * 100) + i, 510))
-
 
     def draw_unit_select(self):
         self.unit_list.clear()
@@ -88,7 +122,7 @@ class GUI:
 
             rect = unit.icon_image.get_rect()
             rect[0] = i * rect[2]
-            rect[1] = self.top_height + self.game_height
+            rect[1] = self.stat_panel_height + self.game_grid_height
             self.unit_list.append([rect, i])
 
             self.screen.blit(unit.icon_image, rect)
@@ -99,10 +133,10 @@ class GUI:
                 pygame.draw.rect(self.screen, (255, 125, 0), rect, 4)
 
             i += 1
-        self.btn_spawn = pygame.Rect(i * rect[2], self.top_height + self.game_height, 128, 64)
+        self.btn_spawn = pygame.Rect(i * rect[2], self.stat_panel_height + self.game_grid_height, 128, 64)
         pygame.draw.rect(self.screen, (255, 125, 0), self.btn_spawn, 3)
         txt_purchase = self.font.render("Buy %s" % selected_unit.name, 1, (0, 128, 255))
-        self.screen.blit(txt_purchase, (i * rect[2] + 10,  self.top_height + self.game_height + 22))
+        self.screen.blit(txt_purchase, (i * rect[2] + 10, self.stat_panel_height + self.game_grid_height + 22))
 
     def draw_building_select(self):
         self.building_list.clear()
@@ -115,7 +149,7 @@ class GUI:
 
             rect = building.icon_image.get_rect()
             rect[0] = i * rect[2]
-            rect[1] = self.top_height + self.game_height + rect[3]
+            rect[1] = self.stat_panel_height + self.game_grid_height + rect[3]
 
             self.building_list.append([rect, building])
             self.screen.blit(building.icon_image, rect)
@@ -135,13 +169,13 @@ class GUI:
 
         p1 = self.font.render("Player 1", 1, (255, 0, 0))
         p2 = self.font.render("Player 2", 1, (0, 0, 255))
-        self.screen.blit(p1, (self.gw - 180, self.top_height + self.game_height + 40, 100, 100))
-        self.screen.blit(p2, (self.gw - 80, self.top_height + self.game_height + 40, 100, 100))
+        self.screen.blit(p1, (self.game_width - 180, self.stat_panel_height + self.game_grid_height + 40, 100, 100))
+        self.screen.blit(p2, (self.game_width - 80, self.stat_panel_height + self.game_grid_height + 40, 100, 100))
 
         for player in self.game.players:
             pygame.draw.rect(self.screen, (0, 255, 0), [
                 player.virtual_cursor_x * 32,
-                self.top_height + (player.virtual_cursor_y * 32), 32, 32
+                self.stat_panel_height + (player.virtual_cursor_y * 32), 32, 32
             ])
 
 
@@ -149,7 +183,7 @@ class GUI:
         # Get all units on map
         for player in self.game.players:
             for unit in player.units:
-                pos = (unit.x * 32, self.top_height + unit.y * 32)
+                pos = (unit.x * 32, self.stat_panel_height + unit.y * 32)
                 unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
                 self.screen.blit(pygame.transform.scale(unit.icon_image, (32, 32)), unit_rect)
 
@@ -157,7 +191,7 @@ class GUI:
         # Get all units on map
         for player in self.game.players:
             for building in player.buildings:
-                pos = (building.x * 32, self.top_height + building.y * 32)
+                pos = (building.x * 32, self.stat_panel_height + building.y * 32)
                 unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
                 self.screen.blit(pygame.transform.scale(building.icon_image, (32, 32)), unit_rect)
 
@@ -170,7 +204,7 @@ class GUI:
             pygame.draw.rect(self.screen, self.tiles[v], self.map_rects[x][y][0])
             pygame.draw.rect(self.screen, (0, 0, 0), self.map_rects[x][y][0], 1)
 
-        x_pos = [10, self.gw - (self.gw / 2) + self.game.config["tile_width"] + 30]
+        x_pos = [10, self.game_width - (self.game_width / 2) + self.game.config["tile_width"] + 30]
         for i, player in enumerate(self.game.players):
             p_name = self.bfont.render("Player %s" % player.id, 1, (255, 255, 0))
             p_health = self.font.render("Health: %s" % player.health, 1, (0, 255, 0))
@@ -189,7 +223,7 @@ class GUI:
     def draw_game_clock(self):
         # Draw Game-Clock
         clock = self.font.render("%ss" % self.game.game_time(), 1, (0, 128, 255))
-        self.screen.blit(clock, ((self.gw / 2) - 35,  10))
+        self.screen.blit(clock, ((self.game_width / 2) - 35, 10))
 
     def draw(self):
         self.draw_map()
@@ -201,6 +235,13 @@ class GUI:
         self.draw_building_select()
         self.draw_level_up()
         self.draw_heat_maps()
+
+
+        self.draw_loss()
+
+
+
+        self.screen.blit(self.plot_surface, (self.plot_surface_x, self.plot_surface_y))
 
         pygame.display.flip()
 
