@@ -36,8 +36,8 @@ class Algorithm:
         self.spawn_per_unit_type = 10
         self.spawn_counter_before_no_money = 0
 
-    def init(self):
-        pass
+    def init(self, player):
+        self.player = player
 
     def reset(self):
         self.step = 0

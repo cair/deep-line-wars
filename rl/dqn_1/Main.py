@@ -1,9 +1,11 @@
+import json
 import random
 
 import PIL
 import keras
 import matplotlib
 import pygame
+import time
 from keras import backend as K
 import numpy as np
 from keras import Input
@@ -14,7 +16,7 @@ from tensorflow.contrib.keras.python.keras.layers.convolutional import Conv2D
 from tensorflow.contrib.keras.python.keras.layers.core import Activation, Flatten, Dense
 import numpy as np
 from matplotlib import pyplot as plt
-
+import os
 
 class PlotLosses(keras.callbacks.Callback):
 
@@ -56,7 +58,8 @@ class PlotLosses(keras.callbacks.Callback):
         f = plt.figure(2)
         plt.clf()
         y_pos = np.arange(len(self.algorithm.action_distribution))
-        plt.bar(y_pos, self.algorithm.action_distribution, align='center', alpha=0.5)
+        sum = np.sum(np.array(self.algorithm.action_distribution))
+        plt.bar(y_pos, [(x / sum) * 100 for x in self.algorithm.action_distribution], align='center', alpha=0.5)
         plt.xticks(y_pos, self.action_names, fontsize=14)
         plt.ylabel('Frequency')
         plt.title('Action Distribution')
@@ -92,6 +95,13 @@ class Memory:
         self.count = 0
         self.max_memory_size = memory_size
 
+    def _recalibrate(self):
+        self.count = len(self.buffer)
+
+    def remove_n(self, n):
+        self.buffer = self.buffer[n-1:-1]
+        self._recalibrate()
+
     def add(self, memory):
         self.buffer.append(memory)
         self.count += 1
@@ -106,20 +116,22 @@ class Memory:
 
         return random.sample(self.buffer, batch_size)
 
-
 class Algorithm:
 
     def __init__(self,
                  game,
-                 memory_size=50000,
-                 learning_rate=1e-4,
-                 epsilon=1.0,
-                 epsilon_end=0.10,
-                 epsilon_steps=10000,
-                 exploration_steps=10000):
+                 memory_size=1000000,               # 1 Million frames in memory
+                 learning_rate=1e-4,                # Learning rate of the model
+                 epsilon=1.0,                       # Start of epsilon decent
+                 epsilon_end=0.0,                   # End of epsilon decent
+                 epsilon_steps=1,               # Epsilon steps
+                 exploration_wins=0,             # Number of victories using random moves before starting epsilon phase
+                 use_training_data=True
+                 ):
 
         self.game = game
         self.memory = Memory(memory_size)
+        self.use_training_data = use_training_data
 
         self.target_model = None
         self.model = None
@@ -129,7 +141,8 @@ class Algorithm:
         self.EPSILON_START = epsilon
         self.EPSILON_END = epsilon_end
         self.EPSILON_DECAY = (self.EPSILON_END - self.EPSILON_START) / epsilon_steps
-        self.EXPLORATION_STEPS = exploration_steps
+        self.EXPLORATION_WINS = exploration_wins
+        self.EXPLORATION_WINS_COUNTER = 0
         self.BATCH_SIZE = 8
         self.GAMMA = 0.99
         self.player = None
@@ -143,24 +156,56 @@ class Algorithm:
         self.epsilon = self.EPSILON_START
         self.iteration = 0
         self.episode = 0
-        self.loss_sum = 0
-        self.rewards = 0
+        self.episode_loss = 0
+        self.episode_reward = 0
 
         self.plot_losses = PlotLosses(self.game, self)
 
     def reset(self):
-        self.episode += 1
+
+        # Get new initial state
         self.state = np.expand_dims(self.game.get_state(self.player), 0)
+
+        # Reset plot
         self.plot_losses.new_game()
 
+        # Update target model
         if self.target_model:
             self.update_target_model()
+
+        # Check if game was a victory
+        if self.game.winner == self.player:
+            # Add to counter
+            self.EXPLORATION_WINS_COUNTER += 1
+            items = np.array(self.memory.buffer[-1*self.iteration:])
+            np.save("./training_data/win_%s_%s" % (self.EXPLORATION_WINS_COUNTER, time.time()), items)
+
+        else:
+            # Lost the round, delete memories
+            self.memory.remove_n(self.iteration)
+
+        self.iteration = 0
+
+        # Print output
+        print("Episode: %s, Epsilon: %s, Reward: %s, Loss: %s, Memory: %s" % (self.episode, self.epsilon, self.episode_reward, self.episode_loss, self.memory.count))
+
+        # Reset loss sum
+        self.episode_loss = 0
+
+        # Reset episode reward
+        self.episode_reward = 0
+
+        # Increase episode
+        self.episode += 1
+
 
     def update_target_model(self):
         # copy weights from model to target_model
         self.target_model.set_weights(self.model.get_weights())
 
-    def init(self):
+    def init(self, player):
+        self.player = player
+
         self.state = self.game.get_state(self.player)
         self.state_size = self.state.shape
 
@@ -172,8 +217,17 @@ class Algorithm:
         self.target_model = self.build_model()
 
         try:
+            # Load training data
+            if self.use_training_data:
+                for file in os.listdir("./training_data/"):
+                    file = os.path.join("./training_data/", file)
+                    training_items = np.load(file)
+                    for training_item in training_items:
+                        self.memory.add(training_item)
+
             self.load("./save/dqn_3_p%s.h5" % self.player.id)
             print("Loaded ./save/dqn_3_p%s.h5" % self.player.id)
+
         except:
             pass
 
@@ -189,16 +243,23 @@ class Algorithm:
         # Image input
         input_layer = Input(shape=self.state_size, name='image_input')
 
-        conv1 = Conv2D(32, (8, 8), strides=(1, 1), activation='relu', kernel_initializer=initializer)(input_layer)
-        conv2 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv1)
-        conv3 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv2)
+        conv1 = Conv2D(32, (8, 8), strides=(1, 1), activation='relu')(input_layer)   # kernel_initializer=initializer
+        conv2 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv1)
+        conv3 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv2)
+        #conv4 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv3)
+        #conv5 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv4)
+
+        #conv6 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv5)
+        #conv7 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv6)
+
         conv_flatten = Flatten()(conv3)
+        dense_first = Dense(512, activation='relu')(conv_flatten)
 
         # Vector state input
         input_layer_2 = Input(shape=(2, ), name="vector_input")
-        vec_dense = Dense(128, activation='relu')(input_layer_2)
-        concat_layer = keras.layers.Concatenate()([vec_dense, conv_flatten])
-        dense_1 = Dense(1024, activation='relu')(concat_layer)
+        vec_dense = Dense(512, activation='relu')(input_layer_2)
+        concat_layer = keras.layers.merge([vec_dense, dense_first], mode=lambda x: x[0]-K.mean(x[0])+x[1] , output_shape=(512,))
+        dense_1 = Dense(512, activation='relu')(concat_layer)
 
         # Stream split
         fc1 = Dense(512, kernel_initializer=initializer)(dense_1)
@@ -243,6 +304,8 @@ class Algorithm:
             history = self.target_model.fit([s, s_vec], target, epochs=1, batch_size=1, callbacks=[self.plot_losses], verbose=0)
             loss += history.history["loss"][0]
 
+        self.episode_loss += loss
+
     def act(self):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
@@ -251,17 +314,12 @@ class Algorithm:
         act_values = self.target_model.predict([self.state, self.state_vec])
         return np.argmax(act_values[0])  # returns action
 
-    def defense_reward(self):
+    def reward_fn(self):
         #score = 1
         #score -= ((1 - (self.player.health / 50)) * 1.2)
         score = (self.player.health - self.player.opponent.health) / 50
-
-
         return score
 
-    def attack_reward(self):
-        l_u = len(self.player.units)
-        return -1 if l_u <= 0 else l_u
 
     def update(self, seconds):
 
@@ -276,19 +334,22 @@ class Algorithm:
         s1_vec = np.array([[self.player.health, self.player.opponent.health]])
         s1 = np.expand_dims(s1, 0)
 
-        def_r = self.defense_reward()
-        attk_r = self.attack_reward()
+        reward = self.reward_fn()
 
-        self.memory.add([s, s_vec, a, def_r, s1, s1_vec, terminal])
+        self.memory.add([s, s_vec, a, reward, s1, s1_vec, terminal])
+
+        self.iteration += 1
+        self.state = s1
+        self.state_vec = s1_vec
+        self.episode_reward += reward
+
+        # Exploration wins must be counter up before training. This is so we have a prepopulated memory with GOOD memories
+        if self.EXPLORATION_WINS_COUNTER < self.EXPLORATION_WINS:
+            return
 
         self.train()
 
         self.epsilon += self.EPSILON_DECAY
-        self.iteration += 1
-        self.state = s1
-        self.state_vec = s1_vec
-        self.rewards += def_r
 
-        if self.iteration % 100 == 0:
-            print("I: %s, Epsilon: %s, def_r: %s, Loss: %s" % (self.iteration, self.epsilon, self.rewards, self.loss_sum / self.iteration))
+        if self.iteration % 1000 == 0:
             self.save("./save/dqn_3_p%s.h5" % self.player.id)

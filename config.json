@@ -15,10 +15,13 @@
   "statps": 1,
   "income_ratio": 0.20,
   "kill_gold_ratio": 0.10,
-  "ai": [
-    ["rl.dqn_1.Main", "Algorithm"],
-    ["rl.rnd.Main", "Algorithm"]
-  ],
+  "ai": {
+    "enabled": true,
+    "agents": [
+      [["rl.dqn_1.Main", "Algorithm"]],
+      [["rl.hard_code_1.Main", "Algorithm"]]
+    ]
+  },
   "branch_rl_player": 0,
   "branch_rl": [],
   "state_repr": "heatmap",

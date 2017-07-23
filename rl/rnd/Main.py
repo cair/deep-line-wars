@@ -6,8 +6,10 @@ class Algorithm:
 
     def __init__(self, game):
         self.game = game
+        self.player = None
 
-    def init(self):
+    def init(self, player):
+        self.player = player
         pass
 
     def reset(self):

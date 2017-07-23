@@ -6,30 +6,38 @@ import numpy as np
 import math
 
 
+class AgentList:
+
+    def __init__(self):
+        self.agents = []
+
+        self.sel_idx = 0
+
+    def next(self):
+        self.sel_idx += 1
+
+    def append(self, agent):
+        self.agents.append(agent)
+
+    def get(self):
+        return self.agents[self.sel_idx % len(self.agents)]
+
+    def has_agent(self):
+        return len(self.agents) > 0
+
+
 class Player:
 
     def __init__(self, i, game):
-        self.health = game.config["start_health"]
-        self.gold = game.config["start_gold"]
-        self.lumber = game.config["start_lumber"]
-        self.income = game.config["start_income"]
-        self.levels = json.load(open("./levelup.json", "r"))
-        self.id = i
-        self.level = 0
+        # Persistent variables (kept between episodes)
         self.game = game
-        self.units = []
-        self.buildings = []
-        self.spawn_queue = []
+        self.id = i
+        self.agents = AgentList()
         self.opponent = None
-        self.ai = None
-
-        self.stat_spawn_counter = 0
-
+        self.levels = json.load(open("./levelup.json", "r"))
         self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
-        self.income_counter = self.income_frequency
 
-        self.spawn_x = 0 if i is 1 else game.map[0].shape[0]-1
-        self.goal_x = game.map[0].shape[0]-1 if i is 1 else 0
+        self.direction = 1 if i == 1 else -1
 
         self.action_space = [
             #{"action": "Select Building 0", "type": "building_select", "value": 0},
@@ -52,18 +60,44 @@ class Player:
             {"action": "Purchase Building 2", "type": "purchase_building", "short": "P2", "value": 2},
             {"action": "Purchase Building 3", "type": "purchase_building", "short": "P3", "value": 3},
             {"action": "No Action", "type": "no_action", "short": "NO", "value": 0},
-
         ]
 
+        # Position variables
+        self.spawn_x = 0 if i is 1 else game.map[0].shape[0]-1
+        self.goal_x = game.map[0].shape[0]-1 if i is 1 else 0
+
+        # Episode variables (things that should reset)
+        self.health = None
+        self.gold = None
+        self.lumber = None
+        self.income = None
+        self.level = None
+
+        self.units = None
+        self.buildings = None
+        self.spawn_queue = None
+
+        self.stat_spawn_counter = None
+        self.income_counter = None
+
+        self.virtual_cursor_x = None
+        self.virtual_cursor_y = None
+
+        self.reset()
+
+    def reset(self):
+        self.health = self.game.config["start_health"]
+        self.gold = self.game.config["start_gold"]
+        self.lumber = self.game.config["start_lumber"]
+        self.income = self.game.config["start_income"]
+        self.level = 0
+        self.units = []
+        self.buildings = []
+        self.spawn_queue = []
+        self.stat_spawn_counter = 0
+        self.income_counter = self.income_frequency
         self.virtual_cursor_x = self.spawn_x
         self.virtual_cursor_y = 0
-
-
-        if i == 1:
-            self.direction = 1
-        elif i == 2:
-            self.direction = -1
-
 
     def available_buildings(self):
         return [b for b in self.game.building_shop if b.level <= self.level]
@@ -95,7 +129,6 @@ class Player:
         if u.gold_cost <= self.gold:
             return True
         return False
-
 
     def available_units(self):
         return [u for u in self.game.unit_shop if u.level <= self.level]
@@ -138,10 +171,6 @@ class Player:
             r_x, r_y = self.rel_pos_to_abs(r_x, r_y)
             self.build(r_x, r_y, available[ridx])
             return 1
-
-
-
-
 
     def do_action(self, aidx):
         a = self.action_space[aidx]

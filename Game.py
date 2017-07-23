@@ -1,6 +1,7 @@
 import io
 import json
 import time
+from itertools import cycle
 
 import numpy as np
 from PIL import Image
@@ -53,18 +54,12 @@ class Game:
 
         p1 = Player(1, self)
         p2 = Player(2, self)
-        self.players = [p1, p2]
-        self.ai = self.load_ai()
-
         p1.opponent = p2
         p2.opponent = p1
-        p1.ai = self.ai[0]
-        p2.ai = self.ai[1]
-        self.ai[0].player = p1
-        self.ai[1].player = p2
+        self.players = [p1, p2]
+        self.load_ai(p1, p2)
 
-        self.ai[0].init()
-        self.ai[1].init()
+
 
         self.statistics = {
             p1.id: 0,
@@ -99,15 +94,16 @@ class Game:
     def is_terminal(self):
         return True if self.winner else False
 
-    def load_ai(self):
-        # TODO
-        ais = []
-        for idx, ai in enumerate(self.config["ai"]):
-            mod_name = ai[0]
-            mod_loaded = importlib.import_module(mod_name)
-            clazz = getattr(mod_loaded, ai[1])(self)
-            ais.append(clazz)
-        return ais
+    def load_ai(self, player_1, player_2):
+        players = [player_1, player_2]
+
+        for player_idx, ai_list in enumerate(self.config["ai"]["agents"]):
+            for ai in ai_list:
+                mod_name = ai[0]
+                mod_loaded = importlib.import_module(mod_name)
+                agent_instance = getattr(mod_loaded, ai[1])(self)
+                agent_instance.init(players[player_idx])
+                players[player_idx].agents.append(agent_instance)
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -199,28 +195,18 @@ class Game:
         self.statistics[self.winner.id] += 1
 
     def reset(self):
-
-        self.winner = None
-        p1 = Player(1, self)
-        p2 = Player(2, self)
-        p1.opponent = p2
-        p2.opponent = p1
-        p1.ai = self.ai[0]
-        p2.ai = self.ai[1]
-        self.ai[0].player = p1
-        self.ai[1].player = p2
-        self.ai[0].game = self
-        self.ai[1].game = self
-        self.players = [p1, p2]
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
         self.map[4].fill(0)
+
+        for player in self.players:
+            player.agents.get().reset()
+            player.reset()
+            player.agents.next()
+
+        self.winner = None
         self.ticks = 0
-
-
-        p1.ai.reset()
-        p2.ai.reset()
 
     def generate_heatmap(self, player):
 
@@ -288,11 +274,13 @@ class Game:
 
             player.update()
 
-
     def ai_update(self):
+        if not self.config["ai"]["enabled"]:
+            return
+
         for player in self.players:
-            if player.ai:
-                player.ai.update(self.ticks / self.ticks_per_second)
+            if player.agents.has_agent():
+                player.agents.get().update(self.ticks / self.ticks_per_second)
 
     def render(self):
         self.gui.event()
