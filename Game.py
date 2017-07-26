@@ -4,6 +4,7 @@ import time
 from itertools import cycle
 
 import numpy as np
+import pygame
 from PIL import Image
 import base64
 from Building import Building
@@ -48,8 +49,6 @@ class Game:
         self.setup_environment()
         self.action_space = 2 # 0 = Build, 1 = Spawn
 
-
-        self.gui = GUI(self)
         self.winner = None
 
         p1 = Player(1, self)
@@ -57,7 +56,10 @@ class Game:
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
+        self.gui = GUI(self)
         self.load_ai(p1, p2)
+
+
 
 
 
@@ -251,6 +253,12 @@ class Game:
             return self.generate_heatmap(player)
         elif self.config["state_repr"] == "raw":
             return self.map
+        elif self.config["state_repr"] == "image":
+            # Get fullsize image
+            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
+            image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
+            scaled = scipy.misc.imresize(image, (40, 40), 'nearest')
+            return scaled
         else:
             print("Error! MUSt choose state_repr as either heatmap or raw")
             exit(0)

@@ -18,6 +18,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import os
 
+
 class PlotLosses(keras.callbacks.Callback):
 
     def __init__(self, game, algorithm):
@@ -29,7 +30,7 @@ class PlotLosses(keras.callbacks.Callback):
         self.fig = plt.figure()
 
         matplotlib.rcParams.update({'font.size': 12})
-        self.update_interval = 5000
+        self.update_interval = 500
 
         self.game = game
         self.algorithm = algorithm
@@ -51,8 +52,8 @@ class PlotLosses(keras.callbacks.Callback):
         f.tight_layout()
         wh = f.canvas.get_width_height()
         surf = pygame.image.fromstring(f.canvas.tostring_rgb(), wh, 'RGB')
-        self.game.gui.loss_surface = \
-            pygame.transform.scale(surf, (int(self.game.gui.game_width / 2), self.game.gui.plot_panel_height))
+        plot_loss = surf
+        self.game.gui.surface_plot.plots["loss"] = plot_loss
 
     def action_distrib_graph(self):
         f = plt.figure(2)
@@ -67,8 +68,15 @@ class PlotLosses(keras.callbacks.Callback):
         f.tight_layout()
         wh = f.canvas.get_width_height()
         surf = pygame.image.fromstring(f.canvas.tostring_rgb(), wh, 'RGB')
-        self.game.gui.action_distribution = \
-            pygame.transform.scale(surf, (int(self.game.gui.game_width / 2) + 80, self.game.gui.plot_panel_height))
+        plot_distrib = surf
+        self.game.gui.surface_plot.plots["distrib"] = plot_distrib
+
+    def state_repr(self):
+        state = self.algorithm.state
+        state = np.squeeze(state, axis=0)
+        surf = pygame.surfarray.make_surface(state)
+        self.game.gui.surface_plot.plots["state_repr"] = surf
+
 
     def on_epoch_end(self, epoch, logs={}):
         loss = logs.get('loss')
@@ -84,6 +92,7 @@ class PlotLosses(keras.callbacks.Callback):
         if self.i % self.update_interval == 0:
             self.loss_graph()
             self.action_distrib_graph()
+            self.state_repr()
 
         self.i += 1
 
@@ -121,12 +130,12 @@ class Algorithm:
     def __init__(self,
                  game,
                  memory_size=1000000,               # 1 Million frames in memory
-                 learning_rate=1e-4,                # Learning rate of the model
+                 learning_rate=1e-8,                # Learning rate of the model
                  epsilon=1.0,                       # Start of epsilon decent
                  epsilon_end=0.0,                   # End of epsilon decent
                  epsilon_steps=1,               # Epsilon steps
-                 exploration_wins=0,             # Number of victories using random moves before starting epsilon phase
-                 use_training_data=True
+                 exploration_wins=10,             # Number of victories using random moves before starting epsilon phase
+                 use_training_data=False
                  ):
 
         self.game = game
@@ -181,13 +190,14 @@ class Algorithm:
             np.save("./training_data/win_%s_%s" % (self.EXPLORATION_WINS_COUNTER, time.time()), items)
 
         else:
+            pass
             # Lost the round, delete memories
-            self.memory.remove_n(self.iteration)
-
-        self.iteration = 0
+            #self.memory.remove_n(self.iteration)
 
         # Print output
-        print("Episode: %s, Epsilon: %s, Reward: %s, Loss: %s, Memory: %s" % (self.episode, self.epsilon, self.episode_reward, self.episode_loss, self.memory.count))
+        print("Episode: %s, Epsilon: %s, Reward: %s, Loss: %s, Memory: %s" % (self.episode, self.epsilon, self.episode_reward, self.episode_loss / (self.iteration+1), self.memory.count))
+
+        self.iteration = 0
 
         # Reset loss sum
         self.episode_loss = 0
@@ -243,39 +253,40 @@ class Algorithm:
         # Image input
         input_layer = Input(shape=self.state_size, name='image_input')
 
-        conv1 = Conv2D(32, (8, 8), strides=(1, 1), activation='relu')(input_layer)   # kernel_initializer=initializer
-        conv2 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv1)
-        conv3 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu')(conv2)
-        #conv4 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv3)
-        #conv5 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv4)
-
-        #conv6 = Conv2D(64, (1, 1), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv5)
-        #conv7 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv6)
-
+        conv1 = Conv2D(32, (8, 8), strides=(1, 1), activation='relu', kernel_initializer=initializer)(input_layer)
+        conv2 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv1)
+        conv3 = Conv2D(64, (2, 2), strides=(1, 1), activation='relu', kernel_initializer=initializer)(conv2)
         conv_flatten = Flatten()(conv3)
         dense_first = Dense(512, activation='relu')(conv_flatten)
 
         # Vector state input
-        input_layer_2 = Input(shape=(2, ), name="vector_input")
+        """input_layer_2 = Input(shape=(2, ), name="vector_input")
         vec_dense = Dense(512, activation='relu')(input_layer_2)
+        #concat_layer = keras.layers.concatenate([vec_dense, dense_first])
         concat_layer = keras.layers.merge([vec_dense, dense_first], mode=lambda x: x[0]-K.mean(x[0])+x[1] , output_shape=(512,))
-        dense_1 = Dense(512, activation='relu')(concat_layer)
+        dense_1 = Dense(512, activation='relu')(concat_layer)"""
 
         # Stream split
-        fc1 = Dense(512, kernel_initializer=initializer)(dense_1)
-        fc2 = Dense(512, kernel_initializer=initializer)(dense_1)
+        fc1 = Dense(512, kernel_initializer=initializer)(dense_first)
+        fc2 = Dense(512, kernel_initializer=initializer)(dense_first)
 
         advantage = Dense(self.action_size)(fc1)
         value = Dense(1)(fc2)
 
         policy = keras.layers.merge([advantage, value], mode=lambda x: x[0]-K.mean(x[0])+x[1], output_shape=(self.action_size,))
 
-        model = Model(inputs=[input_layer, input_layer_2], outputs=[policy])
-        optimizer = keras.optimizers.adam(self.LEARNING_RATE)
-        model.compile(optimizer=optimizer, loss='mse')
+        model = Model(inputs=[input_layer], outputs=[policy])
+        #model = Model(inputs=[input_layer, input_layer_2], outputs=[policy])
+        optimizer = keras.optimizers.rmsprop(self.LEARNING_RATE)
+        model.compile(optimizer=optimizer, loss="mse")
         plot_model(model, to_file='./model.png', show_shapes=True, show_layer_names=True)
 
         return model
+
+    @staticmethod
+    def huber(y_true, y_pred):
+        cosh = lambda x: (K.exp(x)+K.exp(-x))/2
+        return K.mean(K.log(cosh(y_pred - y_true)), axis=-1)
 
     def load(self, name):
         self.model.load_weights(name)
@@ -292,16 +303,22 @@ class Algorithm:
         memories = self.memory.get(self.BATCH_SIZE)
         for (s, s_vec, a, r, s1, s1_vec, terminal) in memories:
 
-            target = self.model.predict([s, s_vec])
+            #target = self.model.predict([s, s_vec])
+            target = self.model.predict(s)
 
             if terminal:
                 target[0, a] = r
             else:
-                pred_a = self.model.predict([s, s_vec])
-                pred_t = self.target_model.predict([s1, s1_vec])[0]
+                pred_a = self.model.predict(s)
+                pred_t = self.target_model.predict(s1)[0]
+
+                #pred_a = self.model.predict([s, s_vec])
+                #pred_t = self.target_model.predict([s1, s1_vec])[0]
+
                 target[0, a] = r + self.GAMMA * pred_t[np.argmax(pred_a)]
 
-            history = self.target_model.fit([s, s_vec], target, epochs=1, batch_size=1, callbacks=[self.plot_losses], verbose=0)
+            history = self.target_model.fit(s, target, epochs=1, batch_size=1, callbacks=[self.plot_losses], verbose=0)
+            #history = self.target_model.fit([s, s_vec], target, epochs=1, batch_size=1, callbacks=[self.plot_losses], verbose=0)
             loss += history.history["loss"][0]
 
         self.episode_loss += loss
@@ -311,7 +328,8 @@ class Algorithm:
             return random.randrange(self.action_size)
 
         # Exploit Q-Knowledge
-        act_values = self.target_model.predict([self.state, self.state_vec])
+        act_values = self.target_model.predict(self.state)
+        #act_values = self.target_model.predict([self.state, self.state_vec])
         return np.argmax(act_values[0])  # returns action
 
     def reward_fn(self):

@@ -22,9 +22,12 @@
       [["rl.hard_code_1.Main", "Algorithm"]]
     ]
   },
+  "gui": {
+    "draw_friendly": false
+  },
   "branch_rl_player": 0,
   "branch_rl": [],
-  "state_repr": "heatmap",
+  "state_repr": "image",
   "build_anywhere": true,
   "web": {
     "enabled": false,
