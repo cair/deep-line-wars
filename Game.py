@@ -248,7 +248,7 @@ class Game:
 
         return m
 
-    def get_state(self, player):
+    def get_state(self, player, grayscale=True):
         if self.config["state_repr"] == "heatmap":
             return self.generate_heatmap(player)
         elif self.config["state_repr"] == "raw":
@@ -256,8 +256,12 @@ class Game:
         elif self.config["state_repr"] == "image":
             # Get fullsize image
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
-            scaled = scipy.misc.imresize(image, (40, 40), 'nearest')
+            #image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
+
+            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
+            if grayscale:
+                scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
+                scaled = np.expand_dims(scaled, axis=3)
             return scaled
         else:
             print("Error! MUSt choose state_repr as either heatmap or raw")

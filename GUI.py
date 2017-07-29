@@ -66,7 +66,7 @@ class GameSurface(pygame.Surface):
         self.game = game
         self.tiles = {   #TODO make file
             0: (0, 123, 12),  # Grass
-            1: (255, 25, 0),  # Goal / Hot zone
+            1: (255, 20, 147),  # Goal / Hot zone
             2: (0, 128, 255),  # Mid Zone
             3: (0, 255, 255)
         }
