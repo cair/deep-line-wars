@@ -27,7 +27,7 @@
   },
   "branch_rl_player": 0,
   "branch_rl": [],
-  "state_repr": "image",
+  "state_repr": "raw",
   "build_anywhere": true,
   "web": {
     "enabled": false,

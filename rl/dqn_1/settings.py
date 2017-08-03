@@ -7,7 +7,7 @@ settings = {
     "exploration_wins": 0,                  # Number of victories using random moves before starting epsilon phase
     "use_training_data": False,
     "batch_size": 8,
-    "discount_factor":  0.99
+    "discount_factor":  0.98
 
 
 }

@@ -1,11 +1,13 @@
 import os
 import time
 import random
+
+import keras
 import numpy as np
 from keras import backend as K
 from keras.utils import plot_model
 from tensorflow.contrib.keras.python.keras import initializers
-from tensorflow.contrib.keras.python.keras.optimizers import rmsprop
+from tensorflow.contrib.keras.python.keras.optimizers import rmsprop, adam
 from tensorflow.contrib.keras.python.keras.engine import Input, Model
 from tensorflow.contrib.keras.python.keras.layers.convolutional import Conv2D
 from tensorflow.contrib.keras.python.keras.layers.core import Activation, Flatten, Dense
@@ -47,7 +49,7 @@ class Algorithm:
         self.episode_loss = 0       # Loss sum of a episode
         self.episode_reward = 0     # Reward sum of a episode
         self.iteration = 0          # Iteration counter
-        self.loss_list = None
+        self.loss_list = []
 
         # State data
         self.state_size = None
@@ -66,7 +68,7 @@ class Algorithm:
         # Get new initial state
         self.state = np.expand_dims(self.game.get_state(self.player), 0)
 
-        self.loss_list = []
+        #self.loss_list = []
 
         # Reset plot
         self.plot_losses.new_game()
@@ -115,8 +117,10 @@ class Algorithm:
         self.action_size = len(self.player.action_space)
         self.action_distribution = [0 for _ in range(self.action_size)]
 
-        self.model = self.build_model()
-        self.target_model = self.build_model()
+        #self.model = self.build_model()
+        #self.target_model = self.build_model()
+        self.model = self.build_dense_model()
+        self.target_model = self.build_dense_model()
 
         try:
             # Load training data
@@ -138,12 +142,32 @@ class Algorithm:
         print("Action size is: %s" % self.action_size)
         print("Batch size is: %s " % self.BATCH_SIZE)
 
+    def build_dense_model(self):
+        initializer = initializers.random_normal(stddev=0.5)
+        #initializer = initializers.TruncatedNormal(mean=0.0, stddev=0.5)
+        input_layer = Input(shape=self.state_size, name='image_input')
+        flatt = Flatten()(input_layer)
+        d_1 = Dense(1024, activation="relu", kernel_initializer=initializer)(flatt)
+        d_2 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_1)
+        d_3 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_2)
+        d_4 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_3)
+        d_5 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_4)
+        d_6 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_5)
+        policy = Dense(self.action_size, activation="linear")(d_6)
+
+        model = Model(inputs=[input_layer], outputs=[policy])
+        optimizer = adam(self.LEARNING_RATE)
+        model.compile(optimizer=optimizer, loss="mse")
+        plot_model(model, to_file='./model.png', show_shapes=True, show_layer_names=True)
+        return model
+
     def build_model(self):
         # Neural Net for Deep-Q learning Model
         initializer = initializers.random_normal(stddev=0.01)
+        #initializer = initializers.TruncatedNormal(mean=0.0, stddev=0.5)
 
         # Image input
-        input_layer = Input(shape=self.state_size, name='image_input')
+
 
         conv1 = Conv2D(32, (8, 8), strides=(4, 4), activation='relu', kernel_initializer=initializer)(input_layer)
         conv2 = Conv2D(64, (4, 4), strides=(2, 2), activation='relu', kernel_initializer=initializer)(conv1)
@@ -154,22 +178,23 @@ class Algorithm:
         """input_layer_2 = Input(shape=(2, ), name="vector_input")
         vec_dense = Dense(512, activation='relu')(input_layer_2)
         #concat_layer = keras.layers.concatenate([vec_dense, dense_first])
-        concat_layer = keras.layers.merge([vec_dense, dense_first], mode=lambda x: x[0]-K.mean(x[0])+x[1] , output_shape=(512,))
+        concat_layer = keras.layers.merge([vec_dense, dense_first], 
+        input_layer = Input(shape=self.state_size, name='image_input')mode=lambda x: x[0]-K.mean(x[0])+x[1] , output_shape=(512,))
         dense_1 = Dense(512, activation='relu')(concat_layer)"""
 
         # Stream split
-        fc1 = Dense(512, kernel_initializer=initializer)(conv_flatten)
-        #fc2 = Dense(512, kernel_initializer=initializer)(conv_flatten)
+        fc1 = Dense(512, kernel_initializer=initializer, activation="relu")(conv_flatten)
+        fc2 = Dense(512, kernel_initializer=initializer, activation="relu")(conv_flatten)
 
-        #advantage = Dense(self.action_size)(fc1)
-        #value = Dense(1)(fc2)
+        advantage = Dense(self.action_size)(fc1)
+        value = Dense(1)(fc2)
 
-        #policy = keras.layers.merge([advantage, value], mode=lambda x: x[0]-K.mean(x[0])+x[1],  output_shape=(self.action_size,))"""
-        policy = Dense(self.action_size, activation="linear")(fc1)
+        policy = keras.layers.merge([advantage, value], mode=lambda x: x[0]-K.mean(x[0])+x[1],  output_shape=(self.action_size,))
+        #policy = Dense(self.action_size, activation="linear")(fc1)
 
         model = Model(inputs=[input_layer], outputs=[policy])
         #model = Model(inputs=[input_layer, input_layer_2], outputs=[policy])
-        optimizer = rmsprop(self.LEARNING_RATE)
+        optimizer = adam(self.LEARNING_RATE)
         model.compile(optimizer=optimizer, loss="mse")
         plot_model(model, to_file='./model.png', show_shapes=True, show_layer_names=True)
 
@@ -194,7 +219,6 @@ class Algorithm:
         loss = 0
         memories = self.memory.get(self.BATCH_SIZE)
         for (s, s_vec, a, r, s1, s1_vec, terminal) in memories:
-            print(s.shape, s1.shape)
             #target = self.model.predict([s, s_vec])
             target = self.model.predict(s)
 
@@ -206,10 +230,9 @@ class Algorithm:
 
                 #pred_a = self.model.predict([s, s_vec])
                 #pred_t = self.target_model.predict([s1, s1_vec])[0]
-
                 target[0, a] = r + self.GAMMA * pred_t[np.argmax(pred_a)]
 
-            history = self.target_model.fit(s, target, epochs=1, batch_size=1, callbacks=[], verbose=0)
+            history = self.model.fit(s, target, epochs=1, batch_size=1, callbacks=[], verbose=0)
             #history = self.target_model.fit([s, s_vec], target, epochs=1, batch_size=1, callbacks=[self.plot_losses], verbose=0)
             loss += history.history["loss"][0]
 
@@ -224,13 +247,17 @@ class Algorithm:
 
         # Exploit Q-Knowledge
         act_values = self.target_model.predict(self.state)
-        #act_values = self.target_model.predict([self.state, self.state_vec])
-
         self.q_values = act_values[0]
         return np.argmax(act_values[0])  # returns action
 
     def reward_fn(self):
-        score = (self.player.health - self.player.opponent.health) / 50
+        reached_red = self.player.enemy_unit_reached_red()
+        if reached_red:
+            score = -1
+        else:
+            score = .1
+
+        score = ((self.player.health - self.player.opponent.health) / 50) + 0.01
         return score
 
     def update(self, seconds):

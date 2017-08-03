@@ -60,8 +60,8 @@ class PlotEngine(Thread):
         self.plot_loss.cla()
         self.plot_loss.plot(self.algorithm.loss_list, label="loss")
         # self.plot_loss.plot(self.x, self.average_losses, label="average_loss")
-        self.plot_loss.set_ylabel('Percent')
-        self.plot_loss.set_title('Time-step')
+        self.plot_loss.set_ylabel('Value')
+        self.plot_loss.set_title('Loss')
 
     def action_distribution(self):
 
@@ -70,7 +70,8 @@ class PlotEngine(Thread):
 
         self.plot_action.cla()
         self.plot_action.bar(y, [(x / s) * 100 for x in self.algorithm.action_distribution], align='center', alpha=0.5)
-        self.plot_action.set_xticks(y, self.action_names)
+        self.plot_action.set_xticks(y)
+        self.plot_action.set_xticklabels(self.action_names, rotation='horizontal')
         self.plot_action.set_ylabel('Frequency')
         self.plot_action.set_title('Action Distribution')
 
@@ -78,11 +79,11 @@ class PlotEngine(Thread):
         y = np.arange(len(self.algorithm.action_distribution))
         self.plot_q.cla()
         self.plot_q.bar(y, self.algorithm.q_values, align='center', alpha=0.5)
-        self.plot_q.set_xticks(y, self.action_names)
+        self.plot_q.set_xticks(y)
+        self.plot_q.set_xticklabels(self.action_names, rotation='horizontal')
         self.plot_q.set_ylabel('Value')
         self.plot_q.set_ylim([-1, 1])
         self.plot_q.set_title('Action')
-
     def state_representation(self):
         state = self.game.get_state(self.algorithm.game.gui.surface_interaction.selected_player, True)
         state = state[:, :, 0]

@@ -32,10 +32,8 @@ class Unit:
     def damage(self, amount):
         self.health -= amount
         if self.health <= 0:
-
             # Increase opponents gold with a ratio of what the unit was worth.
             self.player.opponent.increase_gold(self.gold_cost * self.player.game.config["kill_gold_ratio"])
-
             self.despawn = True
 
     def move(self):
@@ -57,9 +55,14 @@ class Unit:
                 # Unit has reached goal
                 self.player.opponent.health -= 1
                 self.despawn = True
-                self.player.game.map[1][self.x, self.y] = 0
-                self.player.game.map[2][self.x, self.y] = 0
 
             self.tick_counter = self.tick_speed
+
+    def remove(self):
+        # Unit has reached goal
+        #self.player.opponent.health -= 1
+        self.despawn = True
+        self.player.game.map[1][self.x, self.y] = 0
+        self.player.game.map[2][self.x, self.y] = 0
 
 

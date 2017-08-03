@@ -233,9 +233,10 @@ class Player:
         # Process units
         for unit in self.units:
             if unit.despawn:
+                unit.remove()
                 self.units.remove(unit)
-
-            unit.move()
+            else:
+                unit.move()
 
     def increase_gold(self, amount):
         self.gold += amount
@@ -250,6 +251,12 @@ class Player:
             self.levels.pop(0)
         else:
             print("Cannot afford levelup!")
+
+    def enemy_unit_reached_red(self):
+        my_spawn = self.spawn_x
+        if self.opponent.id in self.game.map[2][my_spawn]:
+            return True
+        return False
 
     def enemy_unit_reached_base(self, u):
 

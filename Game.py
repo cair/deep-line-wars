@@ -261,6 +261,7 @@ class Game:
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
             if grayscale:
                 scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
+                scaled /= 255
                 scaled = np.expand_dims(scaled, axis=3)
             return scaled
         else:
