@@ -18,7 +18,7 @@
   "ai": {
     "enabled": true,
     "agents": [
-      [["rl.dqn_1.Main", "Algorithm"]],
+      [["rl.mcqt.Agent", "Agent"]],
       [["rl.hard_code_1.Main", "Algorithm"]]
     ]
   },

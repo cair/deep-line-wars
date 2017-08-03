@@ -38,9 +38,10 @@ class PlotEngine(Thread):
                 self.loss()
                 self.action_distribution()
                 self.state_representation()
-                self.q_values()
+                #self.q_values()
                 self.draw()
-            except:
+            except Exception as e:
+                print(e)
                 pass
             time.sleep(self.refresh_rate)
 
@@ -64,7 +65,6 @@ class PlotEngine(Thread):
         self.plot_loss.set_title('Loss')
 
     def action_distribution(self):
-
         s = np.sum(np.array(self.algorithm.action_distribution))
         y = np.arange(len(self.algorithm.action_distribution))
 
@@ -76,6 +76,7 @@ class PlotEngine(Thread):
         self.plot_action.set_title('Action Distribution')
 
     def q_values(self):
+        print(self.action_names, self.algorithm.q_values)
         y = np.arange(len(self.algorithm.action_distribution))
         self.plot_q.cla()
         self.plot_q.bar(y, self.algorithm.q_values, align='center', alpha=0.5)
@@ -84,6 +85,7 @@ class PlotEngine(Thread):
         self.plot_q.set_ylabel('Value')
         self.plot_q.set_ylim([-1, 1])
         self.plot_q.set_title('Action')
+
     def state_representation(self):
         state = self.game.get_state(self.algorithm.game.gui.surface_interaction.selected_player, True)
         state = state[:, :, 0]
