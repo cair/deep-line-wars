@@ -77,21 +77,17 @@ class Game:
         self.update_counter = 0
         self.allow_ai_update = False
 
-
-
-
     def step(self, player, action):
 
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
         if is_terminal:
             if self.winner != player:
-                reward = -100
+                reward = -1
             else:
-                reward = 1000
+                reward = 1
 
         return self.get_state(player), reward, is_terminal, None,
-
 
     def is_terminal(self):
         return True if self.winner else False
@@ -103,8 +99,7 @@ class Game:
             for ai in ai_list:
                 mod_name = ai[0]
                 mod_loaded = importlib.import_module(mod_name)
-                agent_instance = getattr(mod_loaded, ai[1])(self)
-                agent_instance.init(players[player_idx])
+                agent_instance = getattr(mod_loaded, ai[1])(self, players[player_idx])
                 players[player_idx].agents.append(agent_instance)
 
     def setup_environment(self):
@@ -250,9 +245,11 @@ class Game:
 
     def get_state(self, player, grayscale=True):
         if self.config["state_repr"] == "heatmap":
-            return self.generate_heatmap(player)
+            return np.expand_dims(self.generate_heatmap(player), 0)
         elif self.config["state_repr"] == "raw":
-            return self.map
+            return np.expand_dims(self.map, 0)
+        elif self.config["state_repr"] == "raw_unit":
+            return np.expand_dims(self.map[1], 0)
         elif self.config["state_repr"] == "image":
             # Get fullsize image
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
@@ -263,7 +260,7 @@ class Game:
                 scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
                 scaled /= 255
                 scaled = np.expand_dims(scaled, axis=3)
-            return scaled
+            return np.expand_dims(scaled, 0)
         else:
             print("Error! MUSt choose state_repr as either heatmap or raw")
             exit(0)
@@ -271,6 +268,11 @@ class Game:
     def update(self):
 
         if self.ticks / self.ticks_per_second > 600:
+            player_healths = np.array([player.health for player in self.players])
+            idx = np.argmax(player_healths)
+            self.winner = self.players[idx]
+
+            self.update_statistics()
             self.reset()
             return
 

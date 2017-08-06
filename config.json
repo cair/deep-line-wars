@@ -18,8 +18,8 @@
   "ai": {
     "enabled": true,
     "agents": [
-      [["rl.mcqt.Agent", "Agent"]],
-      [["rl.hard_code_1.Main", "Algorithm"]]
+      [["rl.dqn_1.Main", "Algorithm"]],
+      [["rl.rnd.Main", "Algorithm"]]
     ]
   },
   "gui": {
@@ -27,7 +27,7 @@
   },
   "branch_rl_player": 0,
   "branch_rl": [],
-  "state_repr": "raw",
+  "state_repr": "image",
   "build_anywhere": true,
   "web": {
     "enabled": false,

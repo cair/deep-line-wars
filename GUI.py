@@ -96,7 +96,10 @@ class GameSurface(pygame.Surface):
             owned_by = data[4]
             health_val = 1 - (self.game.players[owned_by].health / 50)
             color = self.tiles[data[3]] if data[3] != 0 else self.get_health_color(health_val)
-            pygame.draw.rect(self, color, self.map_rects[x][y][0])
+            try:
+                pygame.draw.rect(self, color, self.map_rects[x][y][0])
+            except:
+                pass
             #pygame.draw.rect(self, (0, 0, 0), self.map_rects[x][y][0], 1)   # Grid Effect
 
     def draw_units(self):
@@ -111,6 +114,7 @@ class GameSurface(pygame.Surface):
                 pos = (unit.x * 32, unit.y * 32)
                 unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
                 self.blit(pygame.transform.scale(unit.icon_image, (32, 32)), unit_rect)
+                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Grid Effect
 
     def draw_buildings(self):
         # Get all units on map
@@ -280,6 +284,8 @@ class GUI:
         self.surface_interaction_y = self.surface_game_y + self.surface_game_h
         self.surface_plot_y = self.surface_interaction_y + self.surface_interaction_h
 
+        self.i = 0
+
     def player(self):
         return self.game.players[self.selected_player]
 
@@ -329,6 +335,8 @@ class GUI:
 
         self.surface_plot.draw()
         self.screen.blit(self.surface_plot, (0, self.surface_plot_y))
+
+
 
         #self.screen.blit(self.plot_surface, (self.plot_surface_x, self.plot_surface_y))
 

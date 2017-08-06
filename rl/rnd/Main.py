@@ -3,14 +3,9 @@ import random
 
 class Algorithm:
 
-
-    def __init__(self, game):
+    def __init__(self, game, player):
         self.game = game
-        self.player = None
-
-    def init(self, player):
         self.player = player
-        pass
 
     def reset(self):
         pass
@@ -19,7 +14,6 @@ class Algorithm:
 
         action = random.randint(0, len(self.player.action_space) - 1)
         self.player.do_action(action)
-
 
     def on_defeat(self):
         pass

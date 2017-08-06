@@ -34,11 +34,14 @@ class PlotEngine(Thread):
 
     def run(self):
         while True:
+            #print(self.algorithm.train_count)
+            self.algorithm.train_count = 0
+
             try:
                 self.loss()
                 self.action_distribution()
                 self.state_representation()
-                #self.q_values()
+                self.q_values()
                 self.draw()
             except Exception as e:
                 print(e)
@@ -76,19 +79,20 @@ class PlotEngine(Thread):
         self.plot_action.set_title('Action Distribution')
 
     def q_values(self):
-        print(self.action_names, self.algorithm.q_values)
+        #print(self.action_names, self.algorithm.q_values)
         y = np.arange(len(self.algorithm.action_distribution))
         self.plot_q.cla()
         self.plot_q.bar(y, self.algorithm.q_values, align='center', alpha=0.5)
         self.plot_q.set_xticks(y)
         self.plot_q.set_xticklabels(self.action_names, rotation='horizontal')
         self.plot_q.set_ylabel('Value')
-        self.plot_q.set_ylim([-1, 1])
+        #self.plot_q.set_ylim([-1, 1])
         self.plot_q.set_title('Action')
 
     def state_representation(self):
         state = self.game.get_state(self.algorithm.game.gui.surface_interaction.selected_player, True)
-        state = state[:, :, 0]
+        state = state[0, :, :, 0]
+
         self.plot_state.cla()
         self.plot_state.axis('off')
         self.plot_state.imshow(state, interpolation='nearest')

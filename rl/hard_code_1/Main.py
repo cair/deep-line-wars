@@ -3,8 +3,10 @@ import math
 class Algorithm:
 
 
-    def __init__(self, game):
+    def __init__(self, game, player):
+
         self.game = game
+        self.player = player
         self.build_instruction_x_offset_start = 1
         self.build_instruction_x_offset_end = 10 # TODO
         self.build_instruction_y_offset_start = 0
@@ -35,9 +37,6 @@ class Algorithm:
         self.spawn_successes = 0
         self.spawn_per_unit_type = 10
         self.spawn_counter_before_no_money = 0
-
-    def init(self, player):
-        self.player = player
 
     def reset(self):
         self.step = 0

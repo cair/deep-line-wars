@@ -3,7 +3,6 @@ import copy
 import random
 
 import numpy as np
-import math
 
 
 class AgentList:
@@ -28,25 +27,19 @@ class AgentList:
 
 class Player:
 
-    def __init__(self, i, game):
+    def __init__(self, p_id, game):
         # Persistent variables (kept between episodes)
         self.game = game
-        self.id = i
+        self.id = p_id
         self.agents = AgentList()
         self.opponent = None
         self.levels = json.load(open("./levelup.json", "r"))
         self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
 
-        self.direction = 1 if i == 1 else -1
+        self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
+        self.direction = 1 if p_id == 1 else -1
 
         self.action_space = [
-            #{"action": "Select Building 0", "type": "building_select", "value": 0},
-            #{"action": "Select Building 1", "type": "building_select", "value": 1},
-            #{"action": "Select Building 2", "type": "building_select", "value": 2},
-            #{"action": "Select Unit 0", "type": "unit_select", "value": 0},
-            #{"action": "Select Unit 1", "type": "unit_select", "value": 1},
-            #{"action": "Select Unit 2", "type": "unit_select", "value": 2},
-            #{"action": "Select Unit 3", "type": "unit_select", "value": 3},
             {"action": "Move Cursor Up", "type": "cursor_y", "short": "Cu", "value": -1},
             {"action": "Move Cursor Down", "type": "cursor_y", "short": "Cd", "value": 1},
             {"action": "Move Cursor Right", "type": "cursor_x", "short": "Cr", "value": 1},
@@ -63,8 +56,8 @@ class Player:
         ]
 
         # Position variables
-        self.spawn_x = 0 if i is 1 else game.map[0].shape[0]-1
-        self.goal_x = game.map[0].shape[0]-1 if i is 1 else 0
+        self.spawn_x = 0 if p_id is 1 else game.map[0].shape[0]-1
+        self.goal_x = game.map[0].shape[0]-1 if p_id is 1 else 0
 
         # Episode variables (things that should reset)
         self.health = None
