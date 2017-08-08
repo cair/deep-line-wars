@@ -19,7 +19,7 @@
     "enabled": true,
     "agents": [
       [["rl.dqn_1.Main", "Algorithm"]],
-      [["rl.rnd.Main", "Algorithm"]]
+      [["rl.hard_code_1.Main", "Algorithm"]]
     ]
   },
   "gui": {

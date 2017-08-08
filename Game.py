@@ -1,11 +1,8 @@
 import io
 import json
 import time
-from itertools import cycle
-
 import numpy as np
 import pygame
-from PIL import Image
 import base64
 from Building import Building
 from GUI import GUI
@@ -77,7 +74,7 @@ class Game:
         self.update_counter = 0
         self.allow_ai_update = False
 
-    def step(self, player, action):
+    def step(self, player, action, grayscale=True):
 
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
@@ -87,7 +84,7 @@ class Game:
             else:
                 reward = 1
 
-        return self.get_state(player), reward, is_terminal, None,
+        return self.get_state(player, grayscale), reward, is_terminal, None,
 
     def is_terminal(self):
         return True if self.winner else False
@@ -95,12 +92,15 @@ class Game:
     def load_ai(self, player_1, player_2):
         players = [player_1, player_2]
 
-        for player_idx, ai_list in enumerate(self.config["ai"]["agents"]):
+        for idx, player in enumerate(players):
+            ai_list = self.config["ai"]["agents"][idx]
+
             for ai in ai_list:
-                mod_name = ai[0]
-                mod_loaded = importlib.import_module(mod_name)
-                agent_instance = getattr(mod_loaded, ai[1])(self, players[player_idx])
-                players[player_idx].agents.append(agent_instance)
+                module_name = ai[0]
+                module_class_name = ai[1]
+                loaded_module = importlib.import_module(module_name)
+                agent_instance = getattr(loaded_module, module_class_name)(self, player)
+                player.agents.append(agent_instance)
 
     def setup_environment(self):
         env_map = self.map[0]

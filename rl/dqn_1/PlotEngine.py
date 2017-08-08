@@ -69,6 +69,8 @@ class PlotEngine(Thread):
 
     def action_distribution(self):
         s = np.sum(np.array(self.algorithm.action_distribution))
+        if s == 0:
+            s = 1
         y = np.arange(len(self.algorithm.action_distribution))
 
         self.plot_action.cla()

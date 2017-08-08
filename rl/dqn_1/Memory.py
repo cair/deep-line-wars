@@ -1,5 +1,5 @@
 import random
-
+import numpy as np
 
 class Memory:
 
@@ -25,6 +25,6 @@ class Memory:
 
     def get(self, batch_size=1):
         if self.count <= batch_size:
-            return self.buffer
+            return np.array(self.buffer)
 
-        return random.sample(self.buffer, batch_size)
+        return np.array(random.sample(self.buffer, batch_size))

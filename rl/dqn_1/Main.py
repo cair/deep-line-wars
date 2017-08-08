@@ -1,26 +1,22 @@
 import os
 import time
 import random
-from threading import Thread
-
-import keras
 import numpy as np
-
 import tensorflow as tf
-from keras import backend as K
-from keras.utils import plot_model
-from tensorflow.contrib.keras.python.keras import initializers
-from tensorflow.contrib.keras.python.keras.optimizers import rmsprop, adam
+from threading import Thread
+from tensorflow.contrib.keras.python.keras import backend as K
+from tensorflow.contrib.keras.python.keras.models import load_model
+from tensorflow.contrib.keras.python.keras.optimizers import  RMSprop
 from tensorflow.contrib.keras.python.keras.engine import Input, Model
+from tensorflow.contrib.keras.python.keras.utils.vis_utils import plot_model
 from tensorflow.contrib.keras.python.keras.layers.convolutional import Conv2D
-from tensorflow.contrib.keras.python.keras.layers.core import Flatten, Dense, Lambda
-
-from rl.dqn_1.ModelViz import ModelViz
-from rl.dqn_1.settings import settings
-
-from rl.dqn_1.Memory import Memory
-from rl.dqn_1.PlotEngine import PlotEngine
+from tensorflow.contrib.keras.python.keras.layers.core import Flatten, Dense, Lambda, Reshape
+from AIConfig import AIConfig
+from rl.dqn_1.GAN import GAN
 from utils import set_thread_name
+from rl.dqn_1.Memory import Memory
+from rl.dqn_1.settings import settings
+from rl.dqn_1.PlotEngine import PlotEngine
 
 
 class ThreadedTrainer(Thread):
@@ -40,7 +36,6 @@ class ThreadedTrainer(Thread):
 
 class Algorithm:
     def __init__(self, game, player):
-
         self.game = game
         self.player = player
 
@@ -69,37 +64,46 @@ class Algorithm:
         self.loss_list = []
 
         # State data
-        self.state = self.game.get_state(self.player)
+        self.state = self.game.get_state(self.player, settings["grayscale"])
         self.state_size = self.state[0].shape
 
         # Action data
         self.action_size = len(self.player.action_space)
         self.action_distribution = [0 for _ in range(self.action_size)]
 
-
         self.q_values = [0 for _ in range(self.action_size)]
         self.loss_average = []
         self.train_count = 0
 
         # Construct Models
-        self.model = self.build_model()
-        self.target_model = self.build_model()
+        checkpoint_path = os.path.join(os.getcwd(), "save")
+        all_checkpoints = [os.path.join(checkpoint_path, file) for file in os.listdir(checkpoint_path)]
+        if settings["load_latest_checkpoint"] and len(all_checkpoints) > 0:
+            last_checkpoint = list(sorted(all_checkpoints))[-1]
+            self.model = load_model(last_checkpoint)
+            self.target_model = load_model(last_checkpoint)
+        else:
+            self.model = self.build_model()
+            self.target_model = self.build_model()
         self.graph = tf.get_default_graph()
+
+        # GAN
+        self.gan_memory = Memory(settings["memory_size"])
+        self.gan = GAN(self.gan_memory, self.graph, self.BATCH_SIZE, self.state_size, self.target_model)
 
         # Plotting
         self.plot_losses = PlotEngine(self.game, self)
         self.plot_losses.start()
 
-        # DeepDream
-        #self.model_viz = ModelViz(self)
-        #self.model_viz.start()
+        # AIConfig
+        self.ai_config = AIConfig(self)
+        self.ai_config.start()
 
         # Training is done in a separate thread
         if settings["threaded_training"]:
             threaded_training = ThreadedTrainer(self.train)
             threaded_training.setDaemon(True)
             threaded_training.start()
-
 
         # Load training data
         if settings["use_training_data"]:
@@ -109,12 +113,7 @@ class Algorithm:
                 for training_item in training_items:
                     self.memory.add(training_item)
 
-
-
-        # Load existing model
-        #self.load("./save/dqn_3_p%s.h5" % self.player.id)
-        #print("Loaded ./save/dqn_3_p%s.h5" % self.player.id)
-
+        self.model.summary()
         print("DQNRUnner inited!")
         print("State size is: %s,%s,%s" % self.state_size)
         print("Action size is: %s" % self.action_size)
@@ -123,7 +122,7 @@ class Algorithm:
     def reset(self):
 
         # Get new initial state
-        self.state = self.game.get_state(self.player)
+        self.state = self.game.get_state(self.player, settings["grayscale"])
 
         # Reset plot
         self.plot_losses.new_game()
@@ -133,8 +132,8 @@ class Algorithm:
             self.update_target_model()
 
             # Save target model
-            self.save("./save/dqn_p%s_%s.h5" % (self.player.id, time.time()))
-
+            model_name = "./save/dqn_p%s_%s.h5" % (self.player.id, int(time.time()))
+            self.save(model_name)
 
         # Check if game was a victory
         if self.game.winner == self.player:
@@ -160,6 +159,7 @@ class Algorithm:
         # Reset episode reward
         self.episode_reward = 0
 
+
         # Increase episode
         self.episode += 1
 
@@ -167,36 +167,17 @@ class Algorithm:
         # copy weights from model to target_model
         self.target_model.set_weights(self.model.get_weights())
 
-    def build_dense_model(self):
-        initializer = initializers.random_normal(stddev=0.5)
-        # initializer = initializers.TruncatedNormal(mean=0.0, stddev=0.5)
-        input_layer = Input(shape=self.state_size, name='image_input')
-        flatt = Flatten()(input_layer)
-        d_1 = Dense(1024, activation="relu", kernel_initializer=initializer)(flatt)
-        d_2 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_1)
-        d_3 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_2)
-        d_4 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_3)
-        d_5 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_4)
-        d_6 = Dense(1024, activation="relu", kernel_initializer=initializer)(d_5)
-        policy = Dense(self.action_size, activation="linear")(d_6)
-
-        model = Model(inputs=[input_layer], outputs=[policy])
-        optimizer = adam(self.LEARNING_RATE)
-        model.compile(optimizer=optimizer, loss="mse")
-        plot_model(model, to_file='./model.png', show_shapes=True, show_layer_names=True)
-        return model
-
     def build_model(self):
         # Neural Net for Deep-Q learning Model
 
         # Image input
         input_layer = Input(shape=self.state_size, name='image_input')
-        x = Conv2D(16, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform', trainable=True)(
-            input_layer)
+        x = Conv2D(16, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform', trainable=True)(input_layer)
         x = Conv2D(32, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform', trainable=True)(x)
-        x = Conv2D(64, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform', trainable=True)(x)
+        #x = Conv2D(64, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform', trainable=True)(x)
         #x = Conv2D(128, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform')(x)
         #x = Conv2D(256, (3, 3), strides=(2, 2), activation='relu', kernel_initializer='uniform')(x)
+        x = Reshape((int(x.shape[1]), int(x.shape[2]), int(x.shape[3])))(x)
         x = Flatten()(x)
 
         # Value Stream
@@ -211,7 +192,7 @@ class Algorithm:
         #policy = keras.layers.merge([vs, ad], mode=lambda x: x[0] - K.mean(x[0]) + x[1], output_shape=(self.action_size,))
 
         model = Model(inputs=[input_layer], outputs=[policy])
-        optimizer = adam(self.LEARNING_RATE)
+        optimizer = RMSprop(lr=self.LEARNING_RATE)
         model.compile(optimizer=optimizer, loss="mse")
         plot_model(model, to_file='./output/model.png', show_shapes=True, show_layer_names=True)
 
@@ -223,11 +204,14 @@ class Algorithm:
         return K.mean(K.log(cosh(y_pred - y_true)), axis=-1)
 
     def load(self, name):
-        self.model.load_weights(name)
-        self.target_model.load_weights(name)
+        #self.model.load_weights(name)
+        #self.target_model.load_weights(name)
+        self.model = load_model(name)
+        self.target_model = load_model(name)
 
     def save(self, name):
-        self.target_model.save_weights(name)
+        #self.target_model.save_weights(name)
+        self.target_model.save(name)
 
     def train(self):
 
@@ -264,6 +248,10 @@ class Algorithm:
         # Exploit Q-Knowledge
         act_values = self.target_model.predict(self.state)
         self.q_values = act_values[0]
+
+        if settings["gan"]:
+            self.gan_memory.add([self.state, self.q_values])
+
         return np.argmax(act_values[0])  # returns action
 
     def reward_fn(self):
@@ -278,8 +266,7 @@ class Algorithm:
         # 4. set state+1 to state
         action = self.act()
         self.action_distribution[action] += 1
-        s, a, s1, r, terminal, _ = self.state, action, *self.game.step(self.player, action)
-
+        s, a, s1, r, terminal, _ = self.state, action, *self.game.step(self.player, action, settings["grayscale"])
 
         reward = self.reward_fn()
 
@@ -295,5 +282,8 @@ class Algorithm:
         if not settings["threaded_training"]:
             self.train()
 
-        self.epsilon += self.EPSILON_DECAY
+        if settings["gan"]:
+            self.gan.train()
+
+        self.epsilon = max(0, self.epsilon + self.EPSILON_DECAY)
 

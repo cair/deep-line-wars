@@ -21,10 +21,12 @@ class Algorithm:
             1,
             1,
             1,
+            1,
+            1,
+            1,
             2,
             2,
             2,
-            3,
             3,
             3,
         ]
@@ -38,12 +40,17 @@ class Algorithm:
         self.spawn_per_unit_type = 10
         self.spawn_counter_before_no_money = 0
 
+        self.spawn_delay = 4
+        self.iteration = 0
+
     def reset(self):
         self.step = 0
         self.counter = 0
         self.build_successes = 0
         self.spawn_successes = 0
         self.spawn_counter_before_no_money = 0
+        self.spawn_delay = 4
+        self.iteration = 0
 
     def update(self, seconds):
 
@@ -76,22 +83,25 @@ class Algorithm:
         elif self.step == 1:
             # Spam remaining gold
 
-            i = math.floor(self.spawn_counter_before_no_money / self.spawn_per_unit_type)
-            us = self.player.available_units()
-            u = us[min(len(us) - 1, i)]
+            if self.iteration % self.spawn_delay == 0:
+
+                i = math.floor(self.spawn_counter_before_no_money / self.spawn_per_unit_type)
+                us = self.player.available_units()
+                u = us[min(len(us) - 1, i)]
+
+                if not self.player.can_afford_unit(u):
+                    self.step = 0
+                    self.spawn_counter_before_no_money = 0
+                    return True
+
+                self.spawn_counter_before_no_money += 1
+                self.player.spawn([i, u])
+
+                if self.spawn_counter_before_no_money % 5 == 0:
+                    self.step = 0
 
 
-            if not self.player.can_afford_unit(u):
-                self.step = 0
-                self.spawn_counter_before_no_money = 0
-                return True
-
-            self.spawn_counter_before_no_money += 1
-            self.player.spawn([i, u])
-
-
-
-
+        self.iteration += 1
 
 
 
