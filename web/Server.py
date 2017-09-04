@@ -3,6 +3,9 @@ from threading import Thread
 from flask import Flask, request, redirect, url_for, send_from_directory
 from flask_socketio import SocketIO, emit
 import os
+import logging
+log = logging.getLogger("werkzeug")
+log.setLevel(logging.ERROR)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -15,6 +18,13 @@ class Webserver:
         socketio = SocketIO(app)
         self.socketio = socketio
         app.debug = False
+
+        """
+        Static files
+        """
+        @app.route('/output/<path:path>')
+        def output(path):
+            return send_from_directory(os.path.join(os.getcwd(), 'output'), path)
 
         # Routes
         @app.route('/')
@@ -39,6 +49,7 @@ class Webserver:
             print('Client disconnected')
 
         t = Thread(target=socketio.run, args=(app, '0.0.0.0', 8080))
+        print("Started Webserver on 8080")
         t.start()
 
     def emit(self, event,  data):

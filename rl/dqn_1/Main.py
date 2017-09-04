@@ -194,7 +194,7 @@ class Algorithm:
         model = Model(inputs=[input_layer], outputs=[policy])
         optimizer = RMSprop(lr=self.LEARNING_RATE)
         model.compile(optimizer=optimizer, loss="mse")
-        plot_model(model, to_file='./output/model.png', show_shapes=True, show_layer_names=True)
+        plot_model(model, to_file='./output/_dqn_model.png', show_shapes=True, show_layer_names=True)
 
         return model
 

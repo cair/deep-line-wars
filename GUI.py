@@ -228,6 +228,8 @@ class InteractionSurface(pygame.Surface):
                 return
 
 
+
+
 class GUI:
 
     def __init__(self, game):
@@ -372,14 +374,14 @@ class GUI:
                     return
 
 
-                if self.btn_p1.collidepoint(pos):
+                """if self.btn_p1.collidepoint(pos):
                     self.selected_player = 1
 
                 elif self.btn_p2.collidepoint(pos):
                     self.selected_player = 0
 
                 elif self.btn_level_up.collidepoint(pos):
-                    self.player().levelup()
+                    self.player().levelup()"""
 
 
 
@@ -394,3 +396,16 @@ class GUI:
                             building_data = self.building_list[self.selected_building][1]
                             self.player().build(tile[1], tile[2], building_data)"""
 
+
+class NoGUI():
+    def __init__(self, game):
+        self.game = game
+
+    def caption(self):
+        print("%s - DeepLineWars v1.0 [%sfps|%sups]" % (self.game.id, self.game.frame_counter, self.game.update_counter))
+
+    def event(self):
+        pass
+
+    def draw(self):
+        pass

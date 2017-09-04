@@ -1,30 +1,31 @@
-import io
 import json
 import time
 import numpy as np
 import pygame
-import base64
+from multiprocessing import Process
 from Building import Building
-from GUI import GUI
+from GUI import GUI, NoGUI
 from Player import Player
 from Unit import Unit
 from web.Server import Webserver
 import importlib
 import matplotlib.pyplot as plt
 import scipy.misc
+import uuid
+import config
 
-
-class Game:
+class Game(Process):
 
     def __init__(self):
+        super(Game, self).__init__()
+        self.id = uuid.uuid4()
 
         # Load configuration
-        self.config = json.load(open("./config.json", "r"))
         self.unit_data = json.load(open("./units.json", "r"))
         self.building_data = json.load(open("./buildings.json", "r"))
 
         # Start web-server
-        self.web_server = Webserver() if self.config["web"]["enabled"] else None
+        #self.web_server = Webserver() if self.config["web"]["enabled"] else None
 
 
         # Heatmap
@@ -41,7 +42,7 @@ class Game:
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.config["width"], self.config["height"]))
+        self.map = np.zeros((5, config.game["width"], config.game["height"]))
         self.mid = None
         self.setup_environment()
         self.action_space = 2 # 0 = Build, 1 = Spawn
@@ -53,12 +54,8 @@ class Game:
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
-        self.gui = GUI(self)
+        self.gui = GUI(self) if config.gui["enabled"] else NoGUI(self)
         self.load_ai(p1, p2)
-
-
-
-
 
         self.statistics = {
             p1.id: 0,
@@ -68,7 +65,7 @@ class Game:
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
-        self.ticks_per_second = self.config["ticks_per_second"]
+        self.ticks_per_second = config.mechanics["ticks_per_second"]
 
         self.frame_counter = 0
         self.update_counter = 0
@@ -125,26 +122,26 @@ class Game:
         self.mid = mids
 
     def render_interval(self):
-        return 1.0 / self.config["fps"] if self.config["fps"] > 0 else 0
+        return 1.0 / config.mechanics["fps"] if config.mechanics["fps"] > 0 else 0
 
     def update_interval(self):
-        return 1.0 / self.config["ups"] if self.config["ups"] > 0 else 0
+        return 1.0 / config.mechanics["ups"] if config.mechanics["ups"] > 0 else 0
 
     def stat_interval(self):
-        return 1.0 / self.config["statps"] if self.config["statps"] > 0 else 0
+        return 1.0 / config.mechanics["statps"] if config.mechanics["statps"] > 0 else 0
 
     def apm_interval(self):
-        return self.config["max_aps"]
+        return config.mechanics["max_aps"]
         #return 1.0 / self.config["max_aps"] if self.config["max_aps"] > 0 else 0
 
-    def start(self):
-        self.running = True
-
-    def stop(self):
-        self.running = False
+    def set_running(self, value):
+        self.running = value
 
     def summary(self):
         print(self.statistics)
+
+    def run(self):
+        self.loop()
 
     def loop(self):
         update_ratio = self.update_interval()
@@ -178,7 +175,7 @@ class Game:
                 self.frame_counter += 1
 
             if now >= next_stat:
-                self.gui.caption()
+                self.caption()
                 self.frame_counter = 0
                 self.update_counter = 0
                 next_stat = now + stat_ratio
@@ -208,7 +205,7 @@ class Game:
     def generate_heatmap(self, player):
 
         # Start with fully exposed map
-        m = np.zeros(shape=(self.config["height"], self.config["width"], 3))
+        m = np.zeros(shape=(config.game["height"], config.game["width"], 3))
 
         for y in range(m.shape[0]):
             for x in range(m.shape[1]):
@@ -232,14 +229,14 @@ class Game:
         #img.save("heatmap_%s_%s.jpg" % (player.id, 0))
         #scipy.misc.toimage(m, cmin=0.0).save("heatmap_%s_%s.png" % (player.id, self.ticks))
 
-        if self.web_server:
+        """if self.web_server:
             image = scipy.misc.toimage(m, cmin=0.0)
             in_mem_file = io.BytesIO()
             image.save(in_mem_file, format="PNG")
             base64_encoded_result_bytes = base64.b64encode(in_mem_file.getvalue())
             base64_encoded_result_str = base64_encoded_result_bytes.decode('ascii')
 
-            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})
+            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})"""
 
         return m
 
@@ -300,3 +297,6 @@ class Game:
     def render(self):
         self.gui.event()
         self.gui.draw()
+
+    def caption(self):
+        self.gui.caption()

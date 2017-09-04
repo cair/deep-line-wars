@@ -27,33 +27,80 @@
 </nav>
 
 
-<div class="container">
+<div class="container" ng-app="dlw">
 
-    <div id="heatmap_data">
+    <fieldset>
+        <legend>Generative Adversarial Network</legend>
+        <div class="row" ng-controller="gan_controller">
 
-        <div>
-            <div>Player 1</div>
-            <div id="heatmap_player_1">
+            <div class="col-{{image.col}}" ng-repeat="image in images" class="col-lg-6" >
+                <img style="width:100%;" ng-src="{{image.src}}?decache={{image.stamp}}">
             </div>
         </div>
+    </fieldset>
 
-        <div>
-            <div>Player 2</div>
-            <div id="heatmap_player_2">
+
+    <fieldset>
+        <legend>Models</legend>
+        <div class="row" ng-controller="model_controller">
+            <div class="col-6" ng-repeat="image in images" class="col-lg-6" >
+                <h3>{{image.src}}</h3>
+                <img style="width:100%;" ng-src="{{image.src}}?decache={{image.stamp}}">
             </div>
         </div>
+    </fieldset>
 
-    </div>
+
+
 
 
 
 </div>
 
 
-<script src="assets/js/jquery.min.js"></script>
-<script src="assets/js/tether.min.js"></script>
-<script src="assets/js/bootstrap.min.js"></script>
-<script src="assets/js/socket.io.slim.js"></script>
-<script src="assets/js/script.js"></script>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+<script>
+    var app = angular.module('dlw', []);
+
+    app.controller('gan_controller', function($scope, $interval) {
+
+        $scope.getTime = function(){
+            return Math.random();
+        };
+
+        $scope.images = [
+            {src: "output/dqn_gan_real.png", stamp: $scope.getTime(), col: 6},
+            {src: "output/dqn_gan_fake.png", stamp: $scope.getTime(), col: 6},
+            {src: "output/dqn_gan_real_fake_q.png", stamp: $scope.getTime(), col: 6},
+            {src: "output/dqn_gan_plot.png", stamp: $scope.getTime(), col: 6}
+        ];
+
+        $interval(function(){
+            $scope.images.forEach(function(i){
+                i.stamp = $scope.getTime();
+            });
+
+            //$scope.$apply();
+        }, 1000);
+    });
+
+    app.controller('model_controller', function($scope) {
+
+        $scope.getTime = function(){
+            return Math.random();
+        };
+
+        $scope.images = [
+            {src: "output/_adversarial_model.png", stamp: $scope.getTime()},
+            {src: "output/_discriminator_model.png", stamp: $scope.getTime()},
+            {src: "output/_generator_model.png", stamp: $scope.getTime()},
+            {src: "output/_dqn_model.png", stamp: $scope.getTime()},
+        ];
+    });
+
+
+</script>
 </body>
 </html>

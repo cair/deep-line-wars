@@ -34,7 +34,7 @@ while True:
         if e > 0:
             e += e_decay
 
-
+        # extreme learning machine ELM
         # Observe
         state_val += actions[a]
         summary.append(str(actions[a]))
