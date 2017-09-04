@@ -14,6 +14,7 @@ import scipy.misc
 import uuid
 import config
 
+
 class Game(Process):
 
     def __init__(self):
@@ -90,13 +91,13 @@ class Game(Process):
         players = [player_1, player_2]
 
         for idx, player in enumerate(players):
-            ai_list = self.config["ai"]["agents"][idx]
+            ai_list = config.ai["agents"][idx]
 
             for ai in ai_list:
-                module_name = ai[0]
-                module_class_name = ai[1]
+                module_name = ai["package"]
+                module_class_name = ai["class"]
                 loaded_module = importlib.import_module(module_name)
-                agent_instance = getattr(loaded_module, module_class_name)(self, player)
+                agent_instance = getattr(loaded_module, module_class_name)(self, player, ai["representation"])
                 player.agents.append(agent_instance)
 
     def setup_environment(self):
@@ -287,7 +288,7 @@ class Game(Process):
             player.update()
 
     def ai_update(self):
-        if not self.config["ai"]["enabled"]:
+        if not config.ai["enabled"]:
             return
 
         for player in self.players:

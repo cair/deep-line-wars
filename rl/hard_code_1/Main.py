@@ -1,16 +1,17 @@
 import math
+import config
 
 class Algorithm:
 
 
-    def __init__(self, game, player):
-
+    def __init__(self, game, player, representation):
+        self.representation = representation
         self.game = game
         self.player = player
         self.build_instruction_x_offset_start = 1
         self.build_instruction_x_offset_end = 10 # TODO
         self.build_instruction_y_offset_start = 0
-        self.build_instruction_y_offset_end = self.game.config["height"] - 1
+        self.build_instruction_y_offset_end = config.game["height"] - 1
         self.buildings_per_level = 10
 
 

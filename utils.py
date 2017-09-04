@@ -1,7 +1,6 @@
 from ctypes import cdll, byref, create_string_buffer
 
 
-
 def set_thread_name(str_name):
     name = str.encode(str_name)
     libc = cdll.LoadLibrary('libc.so.6')

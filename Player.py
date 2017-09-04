@@ -1,7 +1,7 @@
 import json
 import copy
 import random
-
+import config
 import numpy as np
 
 
@@ -34,7 +34,7 @@ class Player:
         self.agents = AgentList()
         self.opponent = None
         self.levels = json.load(open("./levelup.json", "r"))
-        self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
+        self.income_frequency = config.mechanics["income_frequency"] * config.mechanics["ticks_per_second"]
 
         self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
         self.direction = 1 if p_id == 1 else -1
@@ -79,10 +79,10 @@ class Player:
         self.reset()
 
     def reset(self):
-        self.health = self.game.config["start_health"]
-        self.gold = self.game.config["start_gold"]
-        self.lumber = self.game.config["start_lumber"]
-        self.income = self.game.config["start_income"]
+        self.health = config.mechanics["start_health"]
+        self.gold = config.mechanics["start_gold"]
+        self.lumber = config.mechanics["start_lumber"]
+        self.income = config.mechanics["start_income"]
         self.level = 0
         self.units = []
         self.buildings = []
@@ -97,7 +97,7 @@ class Player:
 
     def rel_pos_to_abs(self, x, y):
         if self.direction == -1:
-            return self.game.config["width"] - x - 1, y
+            return config.game["width"] - x - 1, y
 
         return x, y
 
@@ -158,8 +158,8 @@ class Player:
                 return -0.1
 
             ridx = random.randint(0, len(available) - 1)
-            r_x = random.randint(0, (self.game.config["width"] / 2) - 1)
-            r_y = random.randint(0, self.game.config["height"] - 1)
+            r_x = random.randint(0, (config.game["width"] / 2) - 1)
+            r_y = random.randint(0, config.game["height"] - 1)
 
             r_x, r_y = self.rel_pos_to_abs(r_x, r_y)
             self.build(r_x, r_y, available[ridx])
@@ -174,13 +174,13 @@ class Player:
         try:
             if a["type"] == "cursor_y":
                 prev = self.virtual_cursor_y
-                self.virtual_cursor_y = max(min(self.game.config["height"] - 1, self.virtual_cursor_y + a["value"]), 0)
+                self.virtual_cursor_y = max(min(config.game["height"] - 1, self.virtual_cursor_y + a["value"]), 0)
                 if self.virtual_cursor_y == prev:
                     return -1
                 return 0.1
             elif a["type"] == "cursor_x":
                 prev = self.virtual_cursor_x
-                self.virtual_cursor_x = max(min(self.game.config["width"] - 1, self.virtual_cursor_x + a["value"]), 1)
+                self.virtual_cursor_x = max(min(config.game["width"] - 1, self.virtual_cursor_x + a["value"]), 1)
                 if self.virtual_cursor_x == prev:
                     return -1
 
@@ -264,11 +264,11 @@ class Player:
     def build(self, x, y, building):
 
         # Restrict players from placing towers on mid area and on opponents side
-        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        if self.direction == 1 and not all(i > x for i in self.game.mid) and not config.mechanics["complexity"]["build_anywhere"]:
             return False
-        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not config.mechanics["complexity"]["build_anywhere"]:
             return False
-        elif x == 0 or x == self.game.config["width"] - 1:
+        elif x == 0 or x == config.game["width"] - 1:
             return False
 
 
@@ -306,7 +306,7 @@ class Player:
             return False
 
         # Update income
-        self.income += type.gold_cost * self.game.config["income_ratio"]
+        self.income += type.gold_cost * config.mechanics["income_ratio"]
 
         spawn_x = self.spawn_x
         open_spawn_points = [np.where(self.game.map[1][spawn_x] == 0)[0]][0]

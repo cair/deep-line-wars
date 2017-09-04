@@ -2,6 +2,8 @@ import pygame
 import numpy as np
 from PIL import Image
 
+import config
+
 
 class TopSurface(pygame.Surface):
     def __init__(self, size, game):
@@ -16,7 +18,7 @@ class TopSurface(pygame.Surface):
         self.blit(clock, ((self.get_width() / 2) - 35, 10))
 
     def draw_player_data(self):
-        x_pos = [10, self.get_width() - (self.get_width() / 2) + self.game.config["tile_width"] + 30]
+        x_pos = [10, self.get_width() - (self.get_width() / 2) + config.game["tile_width"] + 30]
         for i, player in enumerate(self.game.players):
             p_name = self.b_font.render("Player %s" % player.id, 1, (255, 255, 0))
             p_health = self.font.render("Health: %s" % player.health, 1, (0, 255, 0))
@@ -71,7 +73,7 @@ class GameSurface(pygame.Surface):
             3: (0, 255, 255)
         }
 
-        self.config_draw_friendly = self.game.config["gui"]["draw_friendly"]
+        self.config_draw_friendly = config.mechanics["complexity"]["draw_friendly"]
 
         # Create rectangles for map
         self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
@@ -251,8 +253,8 @@ class GUI:
         # Size definitions
         self.stat_panel_height = 50
         self.bot_panel_height = 256
-        self.game_grid_height = self.game.config["height"] * self.game.config["tile_height"]  # Height of game graphics
-        self.game_width = self.game.config["width"] * self.game.config["tile_width"]
+        self.game_grid_height = config.game["height"] * config.game["tile_height"]  # Height of game graphics
+        self.game_width = config.game["width"] * config.game["tile_width"]
         self.plot_panel_height = int(self.game_width / 3)
         self.game_height = self.bot_panel_height + self.stat_panel_height + self.game_grid_height + self.plot_panel_height
 
@@ -272,7 +274,7 @@ class GUI:
         pygame.display.set_caption("DeepLineWars v1.0")
 
         self.surface_top_h = 55
-        self.surface_game_h = self.game.config["height"] * self.game.config["tile_height"]
+        self.surface_game_h = config.game["height"] * config.game["tile_height"]
         self.surface_interaction_h = 100
         self.surface_plot_h = 400
 

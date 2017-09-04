@@ -6,9 +6,15 @@ game = {
 "tile_height": 32
 }
 
+gui = {
+    "enabled": True,
+}
+
+
 mechanics = {
   "complexity": {
-      "build_anywhere": True
+      "build_anywhere": True,
+      "draw_friendly": False
   },
   "start_health": 50,
   "start_gold": 100,
@@ -27,14 +33,9 @@ mechanics = {
 ai = {
     "enabled": True,
     "agents": [
-        {"package": "rl.hard_code_1.Main", "class": "Algorithm", "representation": "image"},
-        {"package": "rl.hard_code_1.Main", "class": "Algorithm", "representation": "image"}
+        [{"package": "rl.hard_code_1.Main", "class": "Algorithm", "representation": "image"}],
+        [{"package": "rl.hard_code_1.Main", "class": "Algorithm", "representation": "image"}]
     ]
-}
-
-gui = {
-    "enabled": False,
-    "draw_friendly": False
 }
 
 
