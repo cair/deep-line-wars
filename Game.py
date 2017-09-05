@@ -9,7 +9,6 @@ from Player import Player
 from Unit import Unit
 from web.Server import Webserver
 import importlib
-import matplotlib.pyplot as plt
 import scipy.misc
 import uuid
 import config
@@ -28,15 +27,13 @@ class Game(Process):
         # Start web-server
         #self.web_server = Webserver() if self.config["web"]["enabled"] else None
 
-
-        # Heatmap
-        self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
-        self.hm_color_building = plt.cm.jet(1.0)[0:3]
-        self.hm_color_enemy_unit = plt.cm.jet(0.5)[0:3]
-        self.hm_color_cursor = plt.cm.jet(0.2)[0:3]
-
+        # Game Engine Variables
         self.ticks = 0
         self.running = False
+        self.ticks_per_second = config.mechanics["ticks_per_second"]
+        self.frame_counter = 0
+        self.update_counter = 0
+        self.allow_ai_update = False
 
         # Z = 0 - Environmental Layer
         # Z = 1 - Unit Layer
@@ -66,14 +63,7 @@ class Game(Process):
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
-        self.ticks_per_second = config.mechanics["ticks_per_second"]
-
-        self.frame_counter = 0
-        self.update_counter = 0
-        self.allow_ai_update = False
-
     def step(self, player, action, grayscale=True):
-
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
         if is_terminal:
@@ -122,16 +112,20 @@ class Game(Process):
                 env_map[mid][i] = 2
         self.mid = mids
 
-    def render_interval(self):
+    @staticmethod
+    def render_interval():
         return 1.0 / config.mechanics["fps"] if config.mechanics["fps"] > 0 else 0
 
-    def update_interval(self):
+    @staticmethod
+    def update_interval():
         return 1.0 / config.mechanics["ups"] if config.mechanics["ups"] > 0 else 0
 
-    def stat_interval(self):
+    @staticmethod
+    def stat_interval():
         return 1.0 / config.mechanics["statps"] if config.mechanics["statps"] > 0 else 0
 
-    def apm_interval(self):
+    @staticmethod
+    def apm_interval():
         return config.mechanics["max_aps"]
         #return 1.0 / self.config["max_aps"] if self.config["max_aps"] > 0 else 0
 
@@ -152,7 +146,7 @@ class Game(Process):
         next_update = time.time()
         next_render = time.time()
         next_stat = time.time()
-        #next_apm = time.time()
+        next_apm = time.time()
 
         while self.running:
             now = time.time()
@@ -160,6 +154,7 @@ class Game(Process):
             if now >= next_update:
                 self.update()
                 next_update = now + update_ratio
+
                 self.update_counter += 1
                 self.ticks += 1
                 self.allow_ai_update = True
@@ -242,44 +237,47 @@ class Game(Process):
         return m
 
     def get_state(self, player, grayscale=True):
-        if self.config["state_repr"] == "heatmap":
-            return np.expand_dims(self.generate_heatmap(player), 0)
-        elif self.config["state_repr"] == "raw":
-            return np.expand_dims(self.map, 0)
-        elif self.config["state_repr"] == "raw_unit":
-            return np.expand_dims(self.map[1], 0)
-        elif self.config["state_repr"] == "image":
-            # Get fullsize image
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            #image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
+        if player.ai is None:
+            raise Exception("Player must have attached an AI, to retrieve state information")
 
+        if player.ai.representation == "heatmap":
+            return np.expand_dims(self.generate_heatmap(player), 0)
+
+        elif player.ai.representation == "raw":
+            return np.expand_dims(self.map, 0)
+
+        elif player.ai.representation == "raw_unit":
+            return np.expand_dims(self.map[1], 0)
+
+        elif player.ai.representation == "image":
+            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
+
             if grayscale:
                 scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
                 scaled /= 255
                 scaled = np.expand_dims(scaled, axis=3)
+
             return np.expand_dims(scaled, 0)
         else:
-            print("Error! MUSt choose state_repr as either heatmap or raw")
+            raise Exception("AI must have the representation value set: [heatmap, raw, raw_unit, image]")
             exit(0)
 
     def update(self):
 
-        if self.ticks / self.ticks_per_second > 600:
+        # Check if game has ended (Max time)
+        if self.ticks / self.ticks_per_second > config.mechanics["max_game_ticks"]:
             player_healths = np.array([player.health for player in self.players])
             idx = np.argmax(player_healths)
             self.winner = self.players[idx]
 
+        # Check for winner
+        if self.winner:
             self.update_statistics()
             self.reset()
             return
 
-        if self.winner:
-            self.update_statistics()
-            self.reset()
-
         for player in self.players:
-
             # Check for winner
             if player.health <= 0:
                 self.winner = player.opponent

@@ -1,3 +1,5 @@
+import os
+
 import pygame
 import numpy as np
 from PIL import Image
@@ -9,8 +11,8 @@ class TopSurface(pygame.Surface):
     def __init__(self, size, game):
         pygame.Surface.__init__(self, size=size)
         self.game = game
-        self.font = pygame.font.SysFont("Comic Sans MS", 25)
-        self.b_font = pygame.font.SysFont("Comic Sans MS", 40)
+        self.font = pygame.font.SysFont("Comic Sans MS", 25 if os.name is "posix" else 10)
+        self.b_font = pygame.font.SysFont("Comic Sans MS", 40 if os.name is "posix" else 15)
 
     def draw_game_clock(self):
         # Draw Game-Clock
@@ -144,7 +146,7 @@ class InteractionSurface(pygame.Surface):
     def __init__(self, size, game):
         pygame.Surface.__init__(self, size=size)
         self.game = game
-        self.font = pygame.font.SysFont("Comic Sans MS", 25)
+        self.font = pygame.font.SysFont("Comic Sans MS", 25 if os.name is "posix" else 20)
         self.selected_player = game.players[0]  # Select first player available #
         self.selected_unit = None
         self.icon_size = (32, 32)
@@ -241,8 +243,8 @@ class GUI:
         self.game = game
 
         # Font definition
-        self.font = pygame.font.SysFont("Comic Sans MS", 25)
-        self.bfont = pygame.font.SysFont("Comic Sans MS", 40)
+        self.font = pygame.font.SysFont("Comic Sans MS", 25 if os.name is "posix" else 15)
+        self.bfont = pygame.font.SysFont("Comic Sans MS", 40 if os.name is "posix" else 15)
 
         # GUI Interaction variables
         self.selected_player = 0
