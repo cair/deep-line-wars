@@ -1,0 +1,29 @@
+[
+  {
+    "name": "random",
+    "income": [],
+    "victory": 331
+  },
+  {
+    "name": "dqn_1",
+    "income": [],
+    "victory":635
+  },
+  {
+    "name": "dqn_2",
+    "income": [],
+    "victory": 668
+  },
+  {
+    "name": "hardcode",
+    "income": [],
+    "victory": 921
+  }
+
+
+
+
+
+
+
+]

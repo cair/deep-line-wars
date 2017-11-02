@@ -37,7 +37,7 @@
     "icon": "armored_grunt.png",
     "health": 100,
     "armor": 6,
-    "speed": 2,
+    "speed": 1.2,
     "type": 0,
     "level": 0,
     "gold_drop": 1,

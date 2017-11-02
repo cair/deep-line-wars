@@ -1,4 +1,8 @@
+tensorflow
 plotly
 networkx
 keras
 h5py
+flask
+flask-socketio
+numpy

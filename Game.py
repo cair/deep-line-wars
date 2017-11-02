@@ -1,32 +1,33 @@
-import io
 import json
 import time
-
 import numpy as np
-from PIL import Image
-import base64
+import pygame
+from multiprocessing import Process
 from Building import Building
-from GUI import GUI
+from GUI import GUI, NoGUI
 from Player import Player
 from Unit import Unit
+from utils import json_to_object
 from web.Server import Webserver
 import importlib
 import matplotlib.pyplot as plt
 import scipy.misc
+import uuid
 
 
-class Game:
+class Game(Process):
 
-    def __init__(self):
+    def __init__(self, config_path="./config.json"):
+        super(Game, self).__init__()
+        self.id = uuid.uuid4()
 
         # Load configuration
-        self.config = json.load(open("./config.json", "r"))
         self.unit_data = json.load(open("./units.json", "r"))
         self.building_data = json.load(open("./buildings.json", "r"))
+        self.config = json_to_object(config_path)
 
         # Start web-server
-        self.web_server = Webserver() if self.config["web"]["enabled"] else None
-
+        self.web_server = Webserver() if self.config.web.enabled else None
 
         # Heatmap
         self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
@@ -42,29 +43,20 @@ class Game:
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.config["width"], self.config["height"]))
+        self.map = np.zeros((5, self.config.game.width, self.config.game.height))
         self.mid = None
         self.setup_environment()
-        self.action_space = 2 # 0 = Build, 1 = Spawn
+        self.action_space = 2  # 0 = Build, 1 = Spawn
 
-
-        self.gui = GUI(self)
         self.winner = None
 
         p1 = Player(1, self)
         p2 = Player(2, self)
-        self.players = [p1, p2]
-        self.ai = self.load_ai()
-
         p1.opponent = p2
         p2.opponent = p1
-        p1.ai = self.ai[0]
-        p2.ai = self.ai[1]
-        self.ai[0].player = p1
-        self.ai[1].player = p2
-
-        self.ai[0].init()
-        self.ai[1].init()
+        self.players = [p1, p2]
+        self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
+        self.load_ai(p1, p2)
 
         self.statistics = {
             p1.id: 0,
@@ -74,40 +66,40 @@ class Game:
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
-        self.ticks_per_second = self.config["ticks_per_second"]
+        self.ticks_per_second = self.config.mechanics.ticks_per_second
 
         self.frame_counter = 0
         self.update_counter = 0
         self.allow_ai_update = False
 
-
-
-
-    def step(self, player, action):
+    def step(self, player, action, grayscale=True):
 
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
         if is_terminal:
             if self.winner != player:
-                reward = -100
+                reward = -1
             else:
-                reward = 1000
+                reward = 1
 
-        return self.get_state(player), reward, is_terminal, None,
-
+        return self.get_state(player, grayscale), reward, is_terminal, None,
 
     def is_terminal(self):
         return True if self.winner else False
 
-    def load_ai(self):
-        # TODO
-        ais = []
-        for idx, ai in enumerate(self.config["ai"]):
-            mod_name = ai[0]
-            mod_loaded = importlib.import_module(mod_name)
-            clazz = getattr(mod_loaded, ai[1])(self)
-            ais.append(clazz)
-        return ais
+    def load_ai(self, player_1, player_2):
+        players = [player_1, player_2]
+
+        for idx, player in enumerate(players):
+            ai_list = self.config.ai.agents[idx]
+
+            for ai in ai_list:
+                module_name = ai[0]
+                module_class_name = ai[1]
+
+                loaded_module = importlib.import_module(module_name)
+                agent_instance = getattr(loaded_module, module_class_name)(self, player)
+                player.agents.append(agent_instance)
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -132,26 +124,26 @@ class Game:
         self.mid = mids
 
     def render_interval(self):
-        return 1.0 / self.config["fps"] if self.config["fps"] > 0 else 0
+        return 1.0 / self.config.mechanics.fps if self.config.mechanics.fps > 0 else 0
 
     def update_interval(self):
-        return 1.0 / self.config["ups"] if self.config["ups"] > 0 else 0
+        return 1.0 / self.config.mechanics.ups if self.config.mechanics.ups > 0 else 0
 
     def stat_interval(self):
-        return 1.0 / self.config["statps"] if self.config["statps"] > 0 else 0
+        return 1.0 / self.config.mechanics.statps if self.config.mechanics.statps > 0 else 0
 
     def apm_interval(self):
-        return self.config["max_aps"]
+        return self.config.mechanics.max_aps
         #return 1.0 / self.config["max_aps"] if self.config["max_aps"] > 0 else 0
 
-    def start(self):
-        self.running = True
-
-    def stop(self):
-        self.running = False
+    def set_running(self, value):
+        self.running = value
 
     def summary(self):
         print(self.statistics)
+
+    def run(self):
+        self.loop()
 
     def loop(self):
         update_ratio = self.update_interval()
@@ -185,7 +177,7 @@ class Game:
                 self.frame_counter += 1
 
             if now >= next_stat:
-                self.gui.caption()
+                self.caption()
                 self.frame_counter = 0
                 self.update_counter = 0
                 next_stat = now + stat_ratio
@@ -199,33 +191,25 @@ class Game:
         self.statistics[self.winner.id] += 1
 
     def reset(self):
-
-        self.winner = None
-        p1 = Player(1, self)
-        p2 = Player(2, self)
-        p1.opponent = p2
-        p2.opponent = p1
-        p1.ai = self.ai[0]
-        p2.ai = self.ai[1]
-        self.ai[0].player = p1
-        self.ai[1].player = p2
-        self.ai[0].game = self
-        self.ai[1].game = self
-        self.players = [p1, p2]
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
         self.map[4].fill(0)
+
+        for player in self.players:
+            agent = player.agents.get()
+            if agent:
+                agent.reset()
+            player.reset()
+            player.agents.next()
+
+        self.winner = None
         self.ticks = 0
-
-
-        p1.ai.reset()
-        p2.ai.reset()
 
     def generate_heatmap(self, player):
 
         # Start with fully exposed map
-        m = np.zeros(shape=(self.config["height"], self.config["width"], 3))
+        m = np.zeros(shape=(self.config.game.height, self.config.game.width, 3))
 
         for y in range(m.shape[0]):
             for x in range(m.shape[1]):
@@ -249,22 +233,35 @@ class Game:
         #img.save("heatmap_%s_%s.jpg" % (player.id, 0))
         #scipy.misc.toimage(m, cmin=0.0).save("heatmap_%s_%s.png" % (player.id, self.ticks))
 
-        if self.web_server:
+        """if self.web_server:
             image = scipy.misc.toimage(m, cmin=0.0)
             in_mem_file = io.BytesIO()
             image.save(in_mem_file, format="PNG")
             base64_encoded_result_bytes = base64.b64encode(in_mem_file.getvalue())
             base64_encoded_result_str = base64_encoded_result_bytes.decode('ascii')
 
-            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})
+            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})"""
 
         return m
 
-    def get_state(self, player):
+    def get_state(self, player, grayscale=True):
         if self.config["state_repr"] == "heatmap":
-            return self.generate_heatmap(player)
+            return np.expand_dims(self.generate_heatmap(player), 0)
         elif self.config["state_repr"] == "raw":
-            return self.map
+            return np.expand_dims(self.map, 0)
+        elif self.config["state_repr"] == "raw_unit":
+            return np.expand_dims(self.map[1], 0)
+        elif self.config["state_repr"] == "image":
+            # Get fullsize image
+            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
+            #image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
+
+            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
+            if grayscale:
+                scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
+                scaled /= 255
+                scaled = np.expand_dims(scaled, axis=3)
+            return np.expand_dims(scaled, 0)
         else:
             print("Error! MUSt choose state_repr as either heatmap or raw")
             exit(0)
@@ -272,6 +269,11 @@ class Game:
     def update(self):
 
         if self.ticks / self.ticks_per_second > 600:
+            player_healths = np.array([player.health for player in self.players])
+            idx = np.argmax(player_healths)
+            self.winner = self.players[idx]
+
+            self.update_statistics()
             self.reset()
             return
 
@@ -288,12 +290,17 @@ class Game:
 
             player.update()
 
-
     def ai_update(self):
+        if not self.config.ai.enabled:
+            return
+
         for player in self.players:
-            if player.ai:
-                player.ai.update(self.ticks / self.ticks_per_second)
+            if player.agents.has_agent():
+                player.agents.get().update(self.ticks / self.ticks_per_second)
 
     def render(self):
         self.gui.event()
         self.gui.draw()
+
+    def caption(self):
+        self.gui.caption()

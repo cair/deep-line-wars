@@ -3,72 +3,100 @@ import copy
 import random
 
 import numpy as np
-import math
+
+
+class AgentList:
+
+    def __init__(self):
+        self.agents = []
+        self.sel_idx = 0
+
+    def next(self):
+        self.sel_idx += 1
+
+    def append(self, agent):
+        self.agents.append(agent)
+
+    def get(self):
+        return self.agents[self.sel_idx % len(self.agents)] if self.has_agent() else None
+
+    def has_agent(self):
+        return len(self.agents) > 0
 
 
 class Player:
 
-    def __init__(self, i, game):
-        self.health = game.config["start_health"]
-        self.gold = game.config["start_gold"]
-        self.lumber = game.config["start_lumber"]
-        self.income = game.config["start_income"]
-        self.levels = json.load(open("./levelup.json", "r"))
-        self.id = i
-        self.level = 0
+    def __init__(self, p_id, game):
+        # Persistent variables (kept between episodes)
         self.game = game
+        self.id = p_id
+        self.agents = AgentList()
+        self.opponent = None
+        self.levels = json.load(open("./levelup.json", "r"))
+        self.income_frequency = game.config.mechanics.income_frequency * game.config.mechanics.ticks_per_second
+
+        self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
+        self.direction = 1 if p_id == 1 else -1
+
+        self.action_space = [
+            {"action": "Move Cursor Up", "type": "cursor_y", "short": "Cu", "value": -1},
+            {"action": "Move Cursor Down", "type": "cursor_y", "short": "Cd", "value": 1},
+            {"action": "Move Cursor Right", "type": "cursor_x", "short": "Cr", "value": 1},
+            {"action": "Move Cursor Left", "type": "cursor_x", "short": "Cl", "value": -1},
+            {"action": "Purchase Unit 0", "type": "purchase_unit", "short": "U0", "value": 0},
+            {"action": "Purchase Unit 1", "type": "purchase_unit", "short": "U1", "value": 1},
+            {"action": "Purchase Unit 2", "type": "purchase_unit", "short": "U2", "value": 2},
+            {"action": "Purchase Unit 3", "type": "purchase_unit", "short": "U3", "value": 3},
+            {"action": "Purchase Building 0", "type": "purchase_building", "short": "P0", "value": 0},
+            {"action": "Purchase Building 1", "type": "purchase_building", "short": "P1", "value": 1},
+            {"action": "Purchase Building 2", "type": "purchase_building", "short": "P2", "value": 2},
+            {"action": "Purchase Building 3", "type": "purchase_building", "short": "P3", "value": 3},
+            {"action": "No Action", "type": "no_action", "short": "NO", "value": 0},
+        ]
+
+        # Position variables
+        self.spawn_x = 0 if p_id is 1 else game.map[0].shape[0]-1
+        self.goal_x = game.map[0].shape[0]-1 if p_id is 1 else 0
+
+        # Episode variables (things that should reset)
+        self.health = None
+        self.gold = None
+        self.lumber = None
+        self.income = None
+        self.level = None
+
+        self.units = None
+        self.buildings = None
+        self.spawn_queue = None
+
+        self.stat_spawn_counter = None
+        self.income_counter = None
+
+        self.virtual_cursor_x = None
+        self.virtual_cursor_y = None
+
+        self.reset()
+
+    def reset(self):
+        self.health = self.game.config.mechanics.start_health
+        self.gold = self.game.config.mechanics.start_gold
+        self.lumber = self.game.config.mechanics.start_lumber
+        self.income = self.game.config.mechanics.start_income
+        self.level = 0
         self.units = []
         self.buildings = []
         self.spawn_queue = []
-        self.opponent = None
-        self.ai = None
-
         self.stat_spawn_counter = 0
-
-        self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
         self.income_counter = self.income_frequency
-
-        self.spawn_x = 0 if i is 1 else game.map[0].shape[0]-1
-        self.goal_x = game.map[0].shape[0]-1 if i is 1 else 0
-
-        self.action_space = [
-            #{"action": "Select Building 0", "type": "building_select", "value": 0},
-            #{"action": "Select Building 1", "type": "building_select", "value": 1},
-            #{"action": "Select Building 2", "type": "building_select", "value": 2},
-            #{"action": "Select Unit 0", "type": "unit_select", "value": 0},
-            #{"action": "Select Unit 1", "type": "unit_select", "value": 1},
-            #{"action": "Select Unit 2", "type": "unit_select", "value": 2},
-            #{"action": "Select Unit 3", "type": "unit_select", "value": 3},
-            {"action": "Move Cursor Up", "type": "cursor_y", "value": -1},
-            {"action": "Move Cursor Down", "type": "cursor_y", "value": 1},
-            {"action": "Move Cursor Right", "type": "cursor_x", "value": 1},
-            {"action": "Move Cursor Left", "type": "cursor_x", "value": -1},
-            {"action": "Purchase Unit 0", "type": "purchase_unit", "value": 0},
-            {"action": "Purchase Unit 1", "type": "purchase_unit", "value": 1},
-            {"action": "Purchase Unit 2", "type": "purchase_unit", "value": 2},
-            {"action": "Purchase Unit 3", "type": "purchase_unit", "value": 3},
-            {"action": "Purchase Building 0", "type": "purchase_building", "value": 0},
-            {"action": "Purchase Building 1", "type": "purchase_building", "value": 1},
-            {"action": "Purchase Building 2", "type": "purchase_building", "value": 2},
-            {"action": "Purchase Building 3", "type": "purchase_building", "value": 3},
-        ]
-
         self.virtual_cursor_x = self.spawn_x
         self.virtual_cursor_y = 0
-
-
-        if i == 1:
-            self.direction = 1
-        elif i == 2:
-            self.direction = -1
-
 
     def available_buildings(self):
         return [b for b in self.game.building_shop if b.level <= self.level]
 
     def rel_pos_to_abs(self, x, y):
         if self.direction == -1:
-            return self.game.config["width"] - x - 1, y
+            return self.game.config.game.width - x - 1, y
 
         return x, y
 
@@ -93,7 +121,6 @@ class Player:
         if u.gold_cost <= self.gold:
             return True
         return False
-
 
     def available_units(self):
         return [u for u in self.game.unit_shop if u.level <= self.level]
@@ -136,10 +163,6 @@ class Player:
             r_x, r_y = self.rel_pos_to_abs(r_x, r_y)
             self.build(r_x, r_y, available[ridx])
             return 1
-
-
-
-
 
     def do_action(self, aidx):
         a = self.action_space[aidx]
@@ -202,9 +225,10 @@ class Player:
         # Process units
         for unit in self.units:
             if unit.despawn:
+                unit.remove()
                 self.units.remove(unit)
-
-            unit.move()
+            else:
+                unit.move()
 
     def increase_gold(self, amount):
         self.gold += amount
@@ -220,6 +244,12 @@ class Player:
         else:
             print("Cannot afford levelup!")
 
+    def enemy_unit_reached_red(self):
+        my_spawn = self.spawn_x
+        if self.opponent.id in self.game.map[2][my_spawn]:
+            return True
+        return False
+
     def enemy_unit_reached_base(self, u):
 
         if self.direction == 1 and u.x < self.game.mid[0]:
@@ -233,11 +263,11 @@ class Player:
     def build(self, x, y, building):
 
         # Restrict players from placing towers on mid area and on opponents side
-        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif x == 0 or x == self.game.config["width"] - 1:
+        elif x == 0 or x == self.game.config.game.width - 1:
             return False
 
 
@@ -275,7 +305,7 @@ class Player:
             return False
 
         # Update income
-        self.income += type.gold_cost * self.game.config["income_ratio"]
+        self.income += type.gold_cost * self.game.config.mechanics.income_ratio
 
         spawn_x = self.spawn_x
         open_spawn_points = [np.where(self.game.map[1][spawn_x] == 0)[0]][0]

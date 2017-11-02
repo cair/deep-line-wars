@@ -5,16 +5,19 @@ $(document).ready(function () {
         2: new Image()
     };
 
-    $(".container").append("<div id='heatmap_image'></div>");
-    $("#heatmap_player_1").append(heatmap_images["1"]);
-    $("#heatmap_player_2").append(heatmap_images["2"]);
 
+
+    $(".container").append("<div id='gan_images'></div>");
 
 
 
 
     console.log("Starting SocketIO");
-    var socket = io("http://localhost:8080");
+    var socket = io("http://192.168.160.10:8080"); // TODO
+
+    setInterval(function(){
+        $("#.")
+    }, 1000);
 
     socket.on('connect', function(){
         console.log("Connected to server!")
@@ -25,18 +28,7 @@ $(document).ready(function () {
 
     });
 
-    socket.on('nn_images', function(data){
-
-    });
-
-    socket.on('heatmap', function(heatmap_data){
-        var image = heatmap_images[heatmap_data.player];
-
-        image.src = 'data:image/png;base64,' + heatmap_data.data;
-        image.width = "200";
-        image.height = "100";
 
 
-    });
 
 });
