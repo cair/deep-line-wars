@@ -7,26 +7,27 @@ from Building import Building
 from GUI import GUI, NoGUI
 from Player import Player
 from Unit import Unit
+from utils import json_to_object
 from web.Server import Webserver
 import importlib
 import matplotlib.pyplot as plt
 import scipy.misc
 import uuid
-import config
+
 
 class Game(Process):
 
-    def __init__(self):
+    def __init__(self, config_path="./config.json"):
         super(Game, self).__init__()
         self.id = uuid.uuid4()
 
         # Load configuration
         self.unit_data = json.load(open("./units.json", "r"))
         self.building_data = json.load(open("./buildings.json", "r"))
+        self.config = json_to_object(config_path)
 
         # Start web-server
-        #self.web_server = Webserver() if self.config["web"]["enabled"] else None
-
+        self.web_server = Webserver() if self.config.web.enabled else None
 
         # Heatmap
         self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
@@ -42,10 +43,10 @@ class Game(Process):
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, config.game["width"], config.game["height"]))
+        self.map = np.zeros((5, self.config.game.width, self.config.game.height))
         self.mid = None
         self.setup_environment()
-        self.action_space = 2 # 0 = Build, 1 = Spawn
+        self.action_space = 2  # 0 = Build, 1 = Spawn
 
         self.winner = None
 
@@ -54,7 +55,7 @@ class Game(Process):
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
-        self.gui = GUI(self) if config.gui["enabled"] else NoGUI(self)
+        self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
         self.load_ai(p1, p2)
 
         self.statistics = {
@@ -65,7 +66,7 @@ class Game(Process):
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
-        self.ticks_per_second = config.mechanics["ticks_per_second"]
+        self.ticks_per_second = self.config.mechanics.ticks_per_second
 
         self.frame_counter = 0
         self.update_counter = 0
@@ -90,11 +91,12 @@ class Game(Process):
         players = [player_1, player_2]
 
         for idx, player in enumerate(players):
-            ai_list = self.config["ai"]["agents"][idx]
+            ai_list = self.config.ai.agents[idx]
 
             for ai in ai_list:
                 module_name = ai[0]
                 module_class_name = ai[1]
+
                 loaded_module = importlib.import_module(module_name)
                 agent_instance = getattr(loaded_module, module_class_name)(self, player)
                 player.agents.append(agent_instance)
@@ -122,16 +124,16 @@ class Game(Process):
         self.mid = mids
 
     def render_interval(self):
-        return 1.0 / config.mechanics["fps"] if config.mechanics["fps"] > 0 else 0
+        return 1.0 / self.config.mechanics.fps if self.config.mechanics.fps > 0 else 0
 
     def update_interval(self):
-        return 1.0 / config.mechanics["ups"] if config.mechanics["ups"] > 0 else 0
+        return 1.0 / self.config.mechanics.ups if self.config.mechanics.ups > 0 else 0
 
     def stat_interval(self):
-        return 1.0 / config.mechanics["statps"] if config.mechanics["statps"] > 0 else 0
+        return 1.0 / self.config.mechanics.statps if self.config.mechanics.statps > 0 else 0
 
     def apm_interval(self):
-        return config.mechanics["max_aps"]
+        return self.config.mechanics.max_aps
         #return 1.0 / self.config["max_aps"] if self.config["max_aps"] > 0 else 0
 
     def set_running(self, value):
@@ -195,7 +197,9 @@ class Game(Process):
         self.map[4].fill(0)
 
         for player in self.players:
-            player.agents.get().reset()
+            agent = player.agents.get()
+            if agent:
+                agent.reset()
             player.reset()
             player.agents.next()
 
@@ -205,7 +209,7 @@ class Game(Process):
     def generate_heatmap(self, player):
 
         # Start with fully exposed map
-        m = np.zeros(shape=(config.game["height"], config.game["width"], 3))
+        m = np.zeros(shape=(self.config.game.height, self.config.game.width, 3))
 
         for y in range(m.shape[0]):
             for x in range(m.shape[1]):
@@ -287,7 +291,7 @@ class Game(Process):
             player.update()
 
     def ai_update(self):
-        if not self.config["ai"]["enabled"]:
+        if not self.config.ai.enabled:
             return
 
         for player in self.players:

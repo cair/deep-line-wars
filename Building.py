@@ -2,6 +2,7 @@ import pygame
 import math
 import random
 
+
 class Building:
 
     def __init__(self, data):

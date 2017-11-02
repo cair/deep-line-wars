@@ -27,7 +27,6 @@ class AIConfig(threading.Thread):
         self.epsilon_input = Entry(textvariable=self.epsilon_set_value)
         self.epsilon_input.place(x=70, y=25, width=50)
 
-
         self.epsilon_label = Label(textvariable=self.epsilon_get_value)
         self.epsilon_label.place(x=100, y=25)
 

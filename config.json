@@ -1,0 +1,49 @@
+
+{
+  "game": {
+    "width": 30,
+    "height": 11,
+    "tile_width": 32,
+    "tile_height": 32
+  },
+  "mechanics": {
+    "complexity": {
+      "build_anywhere": true
+    },
+    "start_health": 50,
+    "start_gold": 100,
+    "start_lumber": 0,
+    "start_income": 20,
+    "income_frequency": 10,
+    "ticks_per_second": 10,
+    "fps": 10,
+    "ups": 10008000,
+    "max_aps": 10,
+    "statps": 1,
+    "income_ratio": 0.20,
+    "kill_gold_ratio": 0.10
+  },
+  "ai": {
+    "enabled": true,
+    "agents": [
+      [],
+      [
+        {"package": "rl.hard_code_1.Main", "clazz": "Algorithm", "representation": "image"},
+        {"package": "rl.hard_code_1.Main", "clazz": "Algorithm", "representation": "image"}
+      ]
+    ]
+  },
+  "gui": {
+    "enabled": true,
+    "draw_friendly": false
+  },
+  "web": {
+    "enabled": true,
+    "update_interval": 5,
+    "state_images": true,
+    "nn_images": true
+  }
+
+
+
+}

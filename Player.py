@@ -9,7 +9,6 @@ class AgentList:
 
     def __init__(self):
         self.agents = []
-
         self.sel_idx = 0
 
     def next(self):
@@ -19,7 +18,7 @@ class AgentList:
         self.agents.append(agent)
 
     def get(self):
-        return self.agents[self.sel_idx % len(self.agents)]
+        return self.agents[self.sel_idx % len(self.agents)] if self.has_agent() else None
 
     def has_agent(self):
         return len(self.agents) > 0
@@ -34,7 +33,7 @@ class Player:
         self.agents = AgentList()
         self.opponent = None
         self.levels = json.load(open("./levelup.json", "r"))
-        self.income_frequency = game.config["income_frequency"] * game.config["ticks_per_second"]
+        self.income_frequency = game.config.mechanics.income_frequency * game.config.mechanics.ticks_per_second
 
         self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
         self.direction = 1 if p_id == 1 else -1
@@ -79,10 +78,10 @@ class Player:
         self.reset()
 
     def reset(self):
-        self.health = self.game.config["start_health"]
-        self.gold = self.game.config["start_gold"]
-        self.lumber = self.game.config["start_lumber"]
-        self.income = self.game.config["start_income"]
+        self.health = self.game.config.mechanics.start_health
+        self.gold = self.game.config.mechanics.start_gold
+        self.lumber = self.game.config.mechanics.start_lumber
+        self.income = self.game.config.mechanics.start_income
         self.level = 0
         self.units = []
         self.buildings = []
@@ -97,7 +96,7 @@ class Player:
 
     def rel_pos_to_abs(self, x, y):
         if self.direction == -1:
-            return self.game.config["width"] - x - 1, y
+            return self.game.config.game.width - x - 1, y
 
         return x, y
 
@@ -264,11 +263,11 @@ class Player:
     def build(self, x, y, building):
 
         # Restrict players from placing towers on mid area and on opponents side
-        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        if self.direction == 1 and not all(i > x for i in self.game.mid) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config["build_anywhere"]:
+        elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif x == 0 or x == self.game.config["width"] - 1:
+        elif x == 0 or x == self.game.config.game.width - 1:
             return False
 
 
@@ -306,7 +305,7 @@ class Player:
             return False
 
         # Update income
-        self.income += type.gold_cost * self.game.config["income_ratio"]
+        self.income += type.gold_cost * self.game.config.mechanics.income_ratio
 
         spawn_x = self.spawn_x
         open_spawn_points = [np.where(self.game.map[1][spawn_x] == 0)[0]][0]
