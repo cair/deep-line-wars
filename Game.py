@@ -23,8 +23,8 @@ class Game(Process):
         self.id = uuid.uuid4()
 
         # Load configuration
-        self.unit_data = json.load(open("./units.json", "r"))
-        self.building_data = json.load(open("./buildings.json", "r"))
+        self.unit_data = json.load(open(join(dir_path, "units.json"), "r"))
+        self.building_data = json.load(open(join(dir_path, "buildings.json"), "r"))
         self.config = json_to_object(config_path)
 
         # Start web-server
