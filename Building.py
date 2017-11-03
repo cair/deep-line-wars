@@ -1,7 +1,8 @@
 import pygame
 import math
 import random
-
+from os.path import realpath, dirname, join
+dir_path = dirname(realpath(__file__))
 
 class Building:
 
@@ -17,7 +18,7 @@ class Building:
         self.id = data["id"]
         self.gold_cost = data["gold_cost"]
 
-        self.icon_image = pygame.image.load("./sprites/buildings/%s" % self.icon)
+        self.icon_image = pygame.image.load(join(dir_path, "sprites/buildings/%s") % self.icon)
         self.level = data["level"]
 
         self.player = None
