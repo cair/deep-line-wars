@@ -1,10 +1,9 @@
 from threading import Thread
-
-import keras
 import time
-import matplotlib
 import pygame
 import numpy as np
+
+import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
@@ -92,7 +91,7 @@ class PlotEngine(Thread):
         self.plot_q.set_title('Action')
 
     def state_representation(self):
-        state = self.game.get_state(self.algorithm.game.gui.surface_interaction.selected_player, True)
+        state = self.game.get_state(self.algorithm.game.gui.surface_interaction.selected_player, self.algorithm.state_representation)
         state = state[0, :, :, 0]
 
         self.plot_state.cla()

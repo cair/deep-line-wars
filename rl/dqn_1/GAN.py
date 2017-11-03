@@ -1,18 +1,18 @@
 import numpy as np
 from PIL import Image
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.figure import Figure
 from tensorflow.contrib.keras.python.keras.layers.advanced_activations import LeakyReLU
 from tensorflow.contrib.keras.python.keras.layers.merge import Concatenate
 from tensorflow.contrib.keras.python.keras.layers.noise import GaussianNoise
 from tensorflow.contrib.keras.python.keras.layers.normalization import BatchNormalization
-from tensorflow.contrib.keras.python.keras.models import Sequential
-from tensorflow.contrib.keras.python.keras.optimizers import RMSprop, SGD, Adam
+from tensorflow.contrib.keras.python.keras.optimizers import RMSprop
 from tensorflow.contrib.keras.python.keras.engine import Input, Model
 from tensorflow.contrib.keras.python.keras.layers.convolutional import Conv2D, UpSampling2D, Conv2DTranspose
 from tensorflow.contrib.keras.python.keras.layers.core import Flatten, Dense, Activation, Reshape, Dropout
 from tensorflow.contrib.keras.python.keras.utils.vis_utils import plot_model
 import os
+
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib.figure import Figure
 
 class GAN:
     def __init__(self, memory, graph, batch_size, state_size, q_model):

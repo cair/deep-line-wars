@@ -10,7 +10,7 @@ from Unit import Unit
 from utils import json_to_object
 from web.Server import Webserver
 import importlib
-import matplotlib.pyplot as plt
+
 import scipy.misc
 import uuid
 
@@ -30,10 +30,11 @@ class Game(Process):
         self.web_server = Webserver() if self.config.web.enabled else None
 
         # Heatmap
+        """import matplotlib.pyplot as plt
         self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
         self.hm_color_building = plt.cm.jet(1.0)[0:3]
         self.hm_color_enemy_unit = plt.cm.jet(0.5)[0:3]
-        self.hm_color_cursor = plt.cm.jet(0.2)[0:3]
+        self.hm_color_cursor = plt.cm.jet(0.2)[0:3]"""
 
         self.ticks = 0
         self.running = False
@@ -72,7 +73,7 @@ class Game(Process):
         self.update_counter = 0
         self.allow_ai_update = False
 
-    def step(self, player, action, grayscale=True):
+    def step(self, player, action, representation="image"):
 
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
@@ -82,7 +83,7 @@ class Game(Process):
             else:
                 reward = 1
 
-        return self.get_state(player, grayscale), reward, is_terminal, None,
+        return self.get_state(player, representation=representation), reward, is_terminal, {},
 
     def is_terminal(self):
         return True if self.winner else False
@@ -94,11 +95,12 @@ class Game(Process):
             ai_list = self.config.ai.agents[idx]
 
             for ai in ai_list:
-                module_name = ai[0]
-                module_class_name = ai[1]
+                module_name = ai.package
+                module_class_name = ai.clazz
+                state_representation = ai.representation
 
                 loaded_module = importlib.import_module(module_name)
-                agent_instance = getattr(loaded_module, module_class_name)(self, player)
+                agent_instance = getattr(loaded_module, module_class_name)(self, player, state_representation)
                 player.agents.append(agent_instance)
 
     def setup_environment(self):
@@ -244,27 +246,27 @@ class Game(Process):
 
         return m
 
-    def get_state(self, player, grayscale=True):
-        if self.config["state_repr"] == "heatmap":
-            return np.expand_dims(self.generate_heatmap(player), 0)
-        elif self.config["state_repr"] == "raw":
-            return np.expand_dims(self.map, 0)
-        elif self.config["state_repr"] == "raw_unit":
-            return np.expand_dims(self.map[1], 0)
-        elif self.config["state_repr"] == "image":
-            # Get fullsize image
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            #image = np.resize(image, (int(image.shape[0]/2), image.shape[1], image.shape[2]))
+    def get_state(self, player, representation="image"):
 
+        if representation == "heatmap":
+            return np.expand_dims(self.generate_heatmap(player), 0)
+        elif representation == "raw":
+            return np.expand_dims(self.map, 0)
+        elif representation == "raw_unit":
+            return np.expand_dims(self.map[1], 0)
+        elif representation == "image":
+            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
-            if grayscale:
-                scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
-                scaled /= 255
-                scaled = np.expand_dims(scaled, axis=3)
+            return np.expand_dims(scaled, 0)
+        elif representation == "image_grayscale":
+            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
+            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
+            scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
+            scaled /= 255
+            scaled = np.expand_dims(scaled, axis=3)
             return np.expand_dims(scaled, 0)
         else:
-            print("Error! MUSt choose state_repr as either heatmap or raw")
-            exit(0)
+            raise NotImplementedError("representation must be image, raw, heatmap, raw_unit, image_grayscale")
 
     def update(self):
 

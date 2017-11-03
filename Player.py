@@ -173,13 +173,13 @@ class Player:
         try:
             if a["type"] == "cursor_y":
                 prev = self.virtual_cursor_y
-                self.virtual_cursor_y = max(min(self.game.config["height"] - 1, self.virtual_cursor_y + a["value"]), 0)
+                self.virtual_cursor_y = max(min(self.game.config.game.height - 1, self.virtual_cursor_y + a["value"]), 0)
                 if self.virtual_cursor_y == prev:
                     return -1
                 return 0.1
             elif a["type"] == "cursor_x":
                 prev = self.virtual_cursor_x
-                self.virtual_cursor_x = max(min(self.game.config["width"] - 1, self.virtual_cursor_x + a["value"]), 1)
+                self.virtual_cursor_x = max(min(self.game.config.game.width - 1, self.virtual_cursor_x + a["value"]), 1)
                 if self.virtual_cursor_x == prev:
                     return -1
 

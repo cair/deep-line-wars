@@ -33,7 +33,7 @@ class Unit:
         self.health -= amount
         if self.health <= 0:
             # Increase opponents gold with a ratio of what the unit was worth.
-            self.player.opponent.increase_gold(self.gold_cost * self.player.game.config["kill_gold_ratio"])
+            self.player.opponent.increase_gold(self.gold_cost * self.player.game.config.mechanics.kill_gold_ratio)
             self.despawn = True
 
     def move(self):

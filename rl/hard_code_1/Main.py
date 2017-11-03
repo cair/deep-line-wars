@@ -2,8 +2,7 @@ import math
 
 class Algorithm:
 
-
-    def __init__(self, game, player):
+    def __init__(self, game, player, representation):
 
         self.game = game
         self.player = player

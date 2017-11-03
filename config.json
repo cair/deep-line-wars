@@ -26,10 +26,11 @@
   "ai": {
     "enabled": true,
     "agents": [
-      [],
       [
-        {"package": "rl.hard_code_1.Main", "clazz": "Algorithm", "representation": "image"},
-        {"package": "rl.hard_code_1.Main", "clazz": "Algorithm", "representation": "image"}
+        {"package": "rl.dqn_1.Main", "clazz": "Algorithm", "representation": "raw"}
+      ],
+      [
+        {"package": "rl.hard_code_1.Main", "clazz": "Algorithm", "representation": "raw"}
       ]
     ]
   },
