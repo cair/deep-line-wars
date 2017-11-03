@@ -3,12 +3,12 @@ import time
 import numpy as np
 import pygame
 from multiprocessing import Process
-from Building import Building
-from GUI import GUI, NoGUI
-from Player import Player
-from Unit import Unit
-from utils import json_to_object
-from web.Server import Webserver
+from .Building import Building
+from .GUI import GUI, NoGUI
+from .Player import Player
+from .Unit import Unit
+from .utils import json_to_object
+from .web.Server import Webserver
 import importlib
 import scipy.misc
 import uuid

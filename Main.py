@@ -1,12 +1,13 @@
-import Game
-from utils import set_thread_name
+
+from .Game import Game
+from .utils import set_thread_name
 
 
 if __name__ == "__main__":
     set_thread_name("Main Thread")
     processes = 8
 
-    g = Game.Game()
+    g = Game()
     g.running = True
     g.loop()
 
