@@ -1,4 +1,6 @@
 import pygame
+from os.path import realpath, dirname, join
+dir_path = dirname(realpath(__file__))
 
 
 class Unit:
@@ -18,7 +20,7 @@ class Unit:
         self.player = None
         self.despawn = False
 
-        self.icon_image = pygame.image.load("./sprites/units/%s" % self.icon_name)
+        self.icon_image = pygame.image.load(join(dir_path, "sprites/units/%s") % self.icon_name)
         self.level = data["level"]
 
         self.x = None
