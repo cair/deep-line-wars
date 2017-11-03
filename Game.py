@@ -10,14 +10,15 @@ from Unit import Unit
 from utils import json_to_object
 from web.Server import Webserver
 import importlib
-
 import scipy.misc
 import uuid
+from os.path import realpath, dirname, join
+dir_path = dirname(realpath(__file__))
 
 
 class Game(Process):
 
-    def __init__(self, config_path="./config.json"):
+    def __init__(self, config_path=join(dir_path, "config.json")):
         super(Game, self).__init__()
         self.id = uuid.uuid4()
 
