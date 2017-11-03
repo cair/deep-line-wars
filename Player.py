@@ -1,8 +1,11 @@
 import json
 import copy
 import random
-
 import numpy as np
+from os.path import realpath, dirname, join
+dir_path = dirname(realpath(__file__))
+
+
 
 
 class AgentList:
@@ -32,7 +35,7 @@ class Player:
         self.id = p_id
         self.agents = AgentList()
         self.opponent = None
-        self.levels = json.load(open("./levelup.json", "r"))
+        self.levels = json.load(open(join(dir_path, "levelup.json"), "r"))
         self.income_frequency = game.config.mechanics.income_frequency * game.config.mechanics.ticks_per_second
 
         self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
