@@ -164,8 +164,6 @@ class Game(Process):
             if now >= next_update:
                 self.update()
                 next_update = now + update_ratio
-                self.update_counter += 1
-                self.ticks += 1
                 self.allow_ai_update = True
 
             if self.ticks % apm_ratio == 0 and self.allow_ai_update:
@@ -292,6 +290,9 @@ class Game(Process):
                 break
 
             player.update()
+
+        self.update_counter += 1
+        self.ticks += 1
 
     def ai_update(self):
         if not self.config.ai.enabled:
