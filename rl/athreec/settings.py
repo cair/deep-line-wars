@@ -1,3 +1,0 @@
-
-
-LEARNING_RATE = 0.0004

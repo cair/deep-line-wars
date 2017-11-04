@@ -1,8 +1,9 @@
 import math
 
-class Algorithm:
 
-    def __init__(self, game, player, representation):
+class HardCode1:
+
+    def __init__(self, game, player):
 
         self.game = game
         self.player = player

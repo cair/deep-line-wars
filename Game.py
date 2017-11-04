@@ -8,7 +8,6 @@ from .GUI import GUI, NoGUI
 from .Player import Player
 from .Unit import Unit
 from .utils import json_to_object
-from .web.Server import Webserver
 import importlib
 import scipy.misc
 import uuid
@@ -16,19 +15,17 @@ from os.path import realpath, dirname, join
 dir_path = dirname(realpath(__file__))
 
 
-class Game(Process):
+class Game:
 
-    def __init__(self, config_path=join(dir_path, "config.json")):
-        super(Game, self).__init__()
+    def __init__(self, config_path=join(dir_path, "config/config.json")):
         self.id = uuid.uuid4()
 
         # Load configuration
-        self.unit_data = json.load(open(join(dir_path, "units.json"), "r"))
-        self.building_data = json.load(open(join(dir_path, "buildings.json"), "r"))
+        self.unit_data = json.load(open(join(dir_path, "config/units.json"), "r"))
+        self.building_data = json.load(open(join(dir_path, "config/buildings.json"), "r"))
         self.config = json_to_object(config_path)
 
-        # Start web-server
-        self.web_server = Webserver() if self.config.web.enabled else None
+        self.representation = "image"
 
         # Heatmap
         """import matplotlib.pyplot as plt
@@ -71,10 +68,9 @@ class Game(Process):
         self.ticks_per_second = self.config.mechanics.ticks_per_second
 
         self.frame_counter = 0
-        self.update_counter = 0
         self.allow_ai_update = False
 
-    def step(self, player, action, representation="image"):
+    def step(self, player, action):
 
         reward = player.do_action(action)
         is_terminal = self.is_terminal()
@@ -84,7 +80,7 @@ class Game(Process):
             else:
                 reward = 1
 
-        return self.get_state(player, representation=representation), reward, is_terminal, {},
+        return self.get_state(player), reward, is_terminal, {},
 
     def is_terminal(self):
         return True if self.winner else False
@@ -145,53 +141,13 @@ class Game(Process):
     def summary(self):
         print(self.statistics)
 
-    def run(self):
-        self.loop()
-
-    def loop(self):
-        update_ratio = self.update_interval()
-        render_ratio = self.render_interval()
-        stat_ratio = self.stat_interval()
-        apm_ratio = self.apm_interval()
-        next_update = time.time()
-        next_render = time.time()
-        next_stat = time.time()
-        #next_apm = time.time()
-
-        while self.running:
-            now = time.time()
-
-            if now >= next_update:
-                self.update()
-                next_update = now + update_ratio
-                self.allow_ai_update = True
-
-            if self.ticks % apm_ratio == 0 and self.allow_ai_update:
-                self.ai_update()
-                self.allow_ai_update = False
-                #next_apm = now + apm_ratio
-                # stats
-
-            if now >= next_render:
-                self.render()
-                next_render = now + render_ratio
-                self.frame_counter += 1
-
-            if now >= next_stat:
-                self.caption()
-                self.frame_counter = 0
-                self.update_counter = 0
-                next_stat = now + stat_ratio
-
-        self.summary()
-
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
     def update_statistics(self):
         self.statistics[self.winner.id] += 1
 
-    def reset(self):
+    def reset(self, _player=None):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -207,6 +163,11 @@ class Game(Process):
         self.winner = None
         self.ticks = 0
 
+        if _player:
+            return self.get_state(_player)
+
+        return None
+
     def generate_heatmap(self, player):
 
         # Start with fully exposed map
@@ -220,9 +181,6 @@ class Game(Process):
         # Computer for buildings
         for b in player.buildings:
             m[b.y, b.x] = self.hm_color_building
-            #for vis_y in range(max(0, b.y - b.attack_range), min(self.config["height"], b.y + b.attack_range)):
-            #    for vis_x in range(max(0, b.x - b.attack_range), min(self.config["width"], b.x + b.attack_range)):
-            #m[vis_y, vis_x] = self.hm_color_building
 
         for u in player.opponent.units:
             m[u.y, u.x] = self.hm_color_enemy_unit
@@ -230,34 +188,21 @@ class Game(Process):
         # cursor
         m[player.virtual_cursor_y, player.virtual_cursor_x] = self.hm_color_cursor
 
-        #img = Image.fromarray(m, "RGBA")
-        #img.save("heatmap_%s_%s.jpg" % (player.id, 0))
-        #scipy.misc.toimage(m, cmin=0.0).save("heatmap_%s_%s.png" % (player.id, self.ticks))
-
-        """if self.web_server:
-            image = scipy.misc.toimage(m, cmin=0.0)
-            in_mem_file = io.BytesIO()
-            image.save(in_mem_file, format="PNG")
-            base64_encoded_result_bytes = base64.b64encode(in_mem_file.getvalue())
-            base64_encoded_result_str = base64_encoded_result_bytes.decode('ascii')
-
-            self.web_server.emit('heatmap', {"data": base64_encoded_result_str, "player": player.id})"""
-
         return m
 
-    def get_state(self, player, representation="image"):
+    def get_state(self, player):
 
-        if representation == "heatmap":
+        if self.representation == "heatmap":
             return np.expand_dims(self.generate_heatmap(player), 0)
-        elif representation == "raw":
+        elif self.representation == "raw":
             return np.expand_dims(self.map, 0)
-        elif representation == "raw_unit":
+        elif self.representation == "raw_unit":
             return np.expand_dims(self.map[1], 0)
-        elif representation == "image":
+        elif self.representation == "image":
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
             return np.expand_dims(scaled, 0)
-        elif representation == "image_grayscale":
+        elif self.representation == "image_grayscale":
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
             scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
@@ -268,43 +213,28 @@ class Game(Process):
             raise NotImplementedError("representation must be image, raw, heatmap, raw_unit, image_grayscale")
 
     def update(self):
-
-        if self.ticks / self.ticks_per_second > 600:
-            player_healths = np.array([player.health for player in self.players])
-            idx = np.argmax(player_healths)
-            self.winner = self.players[idx]
-
-            self.update_statistics()
-            self.reset()
+        if self.winner:
             return
 
-        if self.winner:
-            self.update_statistics()
-            self.reset()
-
-        for player in self.players:
-
-            # Check for winner
-            if player.health <= 0:
-                self.winner = player.opponent
-                break
-
-            player.update()
-
-        self.update_counter += 1
         self.ticks += 1
 
-    def ai_update(self):
-        if not self.config.ai.enabled:
-            return
-
         for player in self.players:
+            player.update()
+
             if player.agents.has_agent():
                 player.agents.get().update(self.ticks / self.ticks_per_second)
+
+            if player.health <= 0:
+                self.winner = player.opponent
+                self.update_statistics()
+                break
 
     def render(self):
         self.gui.event()
         self.gui.draw()
+
+    def quit(self):
+        self.gui.quit()
 
     def caption(self):
         self.gui.caption()

@@ -1,7 +1,7 @@
-import math
 import random
 
-class Algorithm:
+
+class Random:
 
     def __init__(self, game, player):
         self.game = game
@@ -11,7 +11,6 @@ class Algorithm:
         pass
 
     def update(self, seconds):
-
         action = random.randint(0, len(self.player.action_space) - 1)
         self.player.do_action(action)
 

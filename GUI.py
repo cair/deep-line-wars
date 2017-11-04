@@ -345,6 +345,10 @@ class GUI:
 
         pygame.display.flip()
 
+    def quit(self):
+        pygame.display.quit()
+        pygame.quit()
+
     def event(self):
         keybind_units = [
             pygame.K_1, pygame.K_2,
@@ -398,6 +402,9 @@ class GUI:
                             self.player().build(tile[1], tile[2], building_data)"""
 
 
+
+
+
 class NoGUI():
     def __init__(self, game):
         self.game = game
@@ -409,4 +416,7 @@ class NoGUI():
         pass
 
     def draw(self):
+        pass
+
+    def quit(self):
         pass

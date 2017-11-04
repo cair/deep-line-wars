@@ -1,14 +1,14 @@
 
 {
   "game": {
-    "width": 30,
-    "height": 11,
+    "width": 24,
+    "height": 24,
     "tile_width": 32,
     "tile_height": 32
   },
   "mechanics": {
     "complexity": {
-      "build_anywhere": true
+      "build_anywhere": false
     },
     "start_health": 50,
     "start_gold": 100,
@@ -33,14 +33,5 @@
   "gui": {
     "enabled": true,
     "draw_friendly": false
-  },
-  "web": {
-    "enabled": true,
-    "update_interval": 5,
-    "state_images": true,
-    "nn_images": true
   }
-
-
-
 }
