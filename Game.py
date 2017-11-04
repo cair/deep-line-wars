@@ -27,6 +27,9 @@ class Game:
 
         self.representation = "image"
 
+        self.width = self.config.game.width
+        self.height = self.config.game.height
+
         # Heatmap
         """import matplotlib.pyplot as plt
         self.hm_color_nothing = plt.cm.jet(0.0)[0:3]
@@ -42,10 +45,11 @@ class Game:
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.config.game.width, self.config.game.height))
+        self.map = np.zeros((5, self.width, self.height))
         self.mid = None
         self.setup_environment()
         self.action_space = 2  # 0 = Build, 1 = Spawn
+
 
         self.winner = None
 
@@ -80,6 +84,7 @@ class Game:
             else:
                 reward = 1
 
+        reward = ((self.players[0].health - self.players[1].health) / 50) + 0.01
         return self.get_state(player), reward, is_terminal, {},
 
     def is_terminal(self):
@@ -196,18 +201,30 @@ class Game:
             return np.expand_dims(self.generate_heatmap(player), 0)
         elif self.representation == "raw":
             return np.expand_dims(self.map, 0)
+        elif self.representation == "raw_enemy":
+            arr = np.zeros(shape=(1, 2, self.width, self.height))
+
+            for u in player.buildings:
+                arr[0, 0, u.x, u.y] = u.id
+
+            for u in player.opponent.units:
+                arr[0, 1, u.x, u.y] = u.id
+
+            return arr
+
         elif self.representation == "raw_unit":
             return np.expand_dims(self.map[1], 0)
         elif self.representation == "image":
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
+            scaled = np.swapaxes(scaled, 0, 2)
             return np.expand_dims(scaled, 0)
         elif self.representation == "image_grayscale":
             image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
             scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
             scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
             scaled /= 255
-            scaled = np.expand_dims(scaled, axis=3)
+            scaled = np.expand_dims(scaled, axis=0)
             return np.expand_dims(scaled, 0)
         else:
             raise NotImplementedError("representation must be image, raw, heatmap, raw_unit, image_grayscale")

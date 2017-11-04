@@ -24,6 +24,8 @@ class Building:
         self.player = None
         self.tick_speed = None
         self.tick_counter = None
+        self.x = None
+        self.y = None
 
     def setup(self, player):
         self.player = player
