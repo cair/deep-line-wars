@@ -238,6 +238,8 @@ class GUI:
         # Game variables
         self.game = game
 
+        self.minimal = game.config.gui.minimal
+
         # Font definition
         self.font = pygame.font.SysFont("Comic Sans MS", 25)
         self.bfont = pygame.font.SysFont("Comic Sans MS", 40)
@@ -248,14 +250,17 @@ class GUI:
         self.selected_unit_type = None
         self.selected_building = 0
 
-
         # Size definitions
         self.stat_panel_height = 50
         self.bot_panel_height = 256
-        self.game_grid_height = self.game.config.game.height * self.game.config.game.tile_height  # Height of game graphics
-        self.game_width = self.game.config.game.width * self.game.config.game.tile_width
+        self.game_grid_height = self.game.height * self.game.config.game.tile_height  # Height of game graphics
+        self.game_width = self.game.width * self.game.config.game.tile_width
         self.plot_panel_height = int(self.game_width / 3)
-        self.game_height = self.bot_panel_height + self.stat_panel_height + self.game_grid_height + self.plot_panel_height
+
+        if self.minimal:
+            self.game_height = self.game_grid_height
+        else:
+            self.game_height = self.bot_panel_height + self.stat_panel_height + self.game_grid_height + self.plot_panel_height
 
         # Position definitions
         self.plot_surface_x = 0
@@ -273,7 +278,7 @@ class GUI:
         pygame.display.set_caption("DeepLineWars v1.0")
 
         self.surface_top_h = 55
-        self.surface_game_h = self.game.config.game.height * self.game.config.game.tile_height
+        self.surface_game_h = self.game.height * self.game.config.game.tile_height
         self.surface_interaction_h = 100
         self.surface_plot_h = 400
 
@@ -286,6 +291,9 @@ class GUI:
         self.surface_game_y = self.surface_top_h
         self.surface_interaction_y = self.surface_game_y + self.surface_game_h
         self.surface_plot_y = self.surface_interaction_y + self.surface_interaction_h
+
+        if self.minimal:
+            self.surface_game_y = 0
 
         self.i = 0
 
@@ -327,21 +335,18 @@ class GUI:
         #self.draw_level_up()
         #self.draw_heat_maps()
 
-        self.surface_top.draw()
-        self.screen.blit(self.surface_top, (0, 0))
-
         self.surface_game.draw()
         self.screen.blit(self.surface_game, (0, self.surface_game_y))
 
-        self.surface_interaction.draw()
-        self.screen.blit(self.surface_interaction, (0, self.surface_interaction_y))
+        if not self.minimal:
+            self.surface_top.draw()
+            self.screen.blit(self.surface_top, (0, 0))
 
-        self.surface_plot.draw()
-        self.screen.blit(self.surface_plot, (0, self.surface_plot_y))
+            self.surface_interaction.draw()
+            self.screen.blit(self.surface_interaction, (0, self.surface_interaction_y))
 
-
-
-        #self.screen.blit(self.plot_surface, (self.plot_surface_x, self.plot_surface_y))
+            self.surface_plot.draw()
+            self.screen.blit(self.surface_plot, (0, self.surface_plot_y))
 
         pygame.display.flip()
 

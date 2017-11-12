@@ -90,14 +90,14 @@ class Player:
         self.stat_spawn_counter = 0
         self.income_counter = self.income_frequency
         self.virtual_cursor_x = self.spawn_x
-        self.virtual_cursor_y = 0
+        self.virtual_cursor_y = int(self.game.height / 2)
 
     def available_buildings(self):
         return [b for b in self.game.building_shop if b.level <= self.level]
 
     def rel_pos_to_abs(self, x, y):
         if self.direction == -1:
-            return self.game.config.game.width - x - 1, y
+            return self.game.width - x - 1, y
 
         return x, y
 
@@ -174,13 +174,13 @@ class Player:
         try:
             if a["type"] == "cursor_y":
                 prev = self.virtual_cursor_y
-                self.virtual_cursor_y = max(min(self.game.config.game.height - 1, self.virtual_cursor_y + a["value"]), 0)
+                self.virtual_cursor_y = max(min(self.game.height - 1, self.virtual_cursor_y + a["value"]), 0)
                 if self.virtual_cursor_y == prev:
                     return -1
                 return 0.1
             elif a["type"] == "cursor_x":
                 prev = self.virtual_cursor_x
-                self.virtual_cursor_x = max(min(self.game.config.game.width - 1, self.virtual_cursor_x + a["value"]), 1)
+                self.virtual_cursor_x = max(min(self.game.width - 1, self.virtual_cursor_x + a["value"]), 1)
                 if self.virtual_cursor_x == prev:
                     return -1
 
@@ -268,7 +268,7 @@ class Player:
             return False
         elif self.direction == -1 and not all(i < x for i in self.game.mid) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif x == 0 or x == self.game.config.game.width - 1:
+        elif x == 0 or x == self.game.width - 1:
             return False
 
 

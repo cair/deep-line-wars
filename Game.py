@@ -7,7 +7,7 @@ from .Building import Building
 from .GUI import GUI, NoGUI
 from .Player import Player
 from .Unit import Unit
-from .utils import json_to_object
+from .utils import json_file_to_object
 import importlib
 import scipy.misc
 import uuid
@@ -17,18 +17,26 @@ dir_path = dirname(realpath(__file__))
 
 class Game:
 
-    def __init__(self, config_path=join(dir_path, "config/config.json")):
+    def __init__(self, config_override={}, config_path=join(dir_path, "config/config.json")):
         self.id = uuid.uuid4()
 
         # Load configuration
         self.unit_data = json.load(open(join(dir_path, "config/units.json"), "r"))
         self.building_data = json.load(open(join(dir_path, "config/buildings.json"), "r"))
-        self.config = json_to_object(config_path)
-
-        self.representation = "image"
+        self.config = json_file_to_object(config_path)
 
         self.width = self.config.game.width
         self.height = self.config.game.height
+
+        if "game" in config_override:
+            if "width" in config_override["game"]:
+                self.width = config_override["game"]["width"]
+
+            if "height" in config_override["game"]:
+                self.height = config_override["game"]["height"]
+
+        self.representation = "image"
+
 
         # Heatmap
         """import matplotlib.pyplot as plt
@@ -49,7 +57,6 @@ class Game:
         self.mid = None
         self.setup_environment()
         self.action_space = 2  # 0 = Build, 1 = Spawn
-
 
         self.winner = None
 
@@ -176,7 +183,7 @@ class Game:
     def generate_heatmap(self, player):
 
         # Start with fully exposed map
-        m = np.zeros(shape=(self.config.game.height, self.config.game.width, 3))
+        m = np.zeros(shape=(self.height, self.width, 3))
 
         for y in range(m.shape[0]):
             for x in range(m.shape[1]):

@@ -11,5 +11,5 @@ def set_thread_name(str_name):
     libc.prctl(15, byref(buff), 0, 0, 0)
 
 
-def json_to_object(file_path):
+def json_file_to_object(file_path):
     return json.load(open(file_path, "rb"), object_hook=lambda d: namedtuple('X', d.keys())(*d.values()))
