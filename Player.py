@@ -197,6 +197,10 @@ class Player:
                     self.game.building_shop[a["value"]]
                 )
                 return 0.1 if succ else -1
+            elif a["type"] == "no_action":
+                return 0
+            else:
+                print(a)
         except IndexError as e:
             return -1  # Punish invalid move
 

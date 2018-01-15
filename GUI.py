@@ -114,7 +114,7 @@ class GameSurface(pygame.Surface):
                 pos = (unit.x * 32, unit.y * 32)
                 unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
                 self.blit(pygame.transform.scale(unit.icon_image, (32, 32)), unit_rect)
-                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Grid Effect
+                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Outline Effect
 
     def draw_buildings(self):
         # Get all units on map
@@ -123,6 +123,7 @@ class GameSurface(pygame.Surface):
                 pos = (building.x * 32, building.y * 32)
                 unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
                 self.blit(pygame.transform.scale(building.icon_image, (32, 32)), unit_rect)
+                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Outline Effect
 
     def draw_cursor(self):
         for player in self.game.players:
