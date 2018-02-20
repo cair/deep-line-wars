@@ -23,14 +23,12 @@ class TopSurface(pygame.Surface):
             p_gold = self.font.render("Gold: %s" % player.gold, 1, (255, 255, 0))
             p_lumber = self.font.render("Lumber: %s" % player.lumber, 1, (255, 255, 0))
             p_income = self.b_font.render("Income: %s" % player.income, 1, (255, 255, 0))
-            p_winner = self.font.render("W: %s | %f" % (self.game.statistics[player.id], (self.game.statistics[player.id] / max(1, sum(self.game.statistics.values())))), 1, (255, 255, 0))
 
             self.blit(p_name, (x_pos[i], 10))
             self.blit(p_health, (x_pos[i] + 120, 5))
             self.blit(p_gold, (x_pos[i] + 120, 20))
             self.blit(p_lumber, (x_pos[i] + 120, 35))
             self.blit(p_income, (x_pos[i] + 240, 10))
-            self.blit(p_winner, (x_pos[i] + 240, 35))
 
     def draw(self):
         self.fill((80,80,80))
@@ -74,13 +72,25 @@ class GameSurface(pygame.Surface):
         self.config_draw_friendly = self.game.config.gui.draw_friendly
 
         # Create rectangles for map
-        self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
+        """self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
         for x in range(self.game.map[0].shape[0]):
             for y in range(self.game.map[0].shape[1]):
                 rect = pygame.Rect(x * 32, (y*32), 32, 32)
                 owned_by = 0 if x < int(self.game.map[0].shape[0] / 2) else 1
                 item = (rect, x, y, self.game.map[0][x][y], owned_by)
                 self.map_rects[x].append(item)
+        """
+
+
+
+        # Create Static map parts (Mid + goal)
+        self.goal_mid = pygame.Surface((self.game.width * 32, self.game.height * 32))
+        for (x, y), v in np.ndenumerate(self.game.map[0]):
+            if v == 1 or v == 2:
+                pygame.draw.rect(self.goal_mid, self.tiles[v], (x * 32, y * 32, 32, 32))
+        self.goal_mid = self.goal_mid.convert()
+
+
 
 
     def get_health_color(self, n):
@@ -91,16 +101,13 @@ class GameSurface(pygame.Surface):
 
     def draw_map(self):
         # Draw Z = 0 - Environmental Layer
-        for (x, y), v in np.ndenumerate(self.game.map[0]):
-            data = self.map_rects[x][y]
-            owned_by = data[4]
-            health_val = 1 - (self.game.players[owned_by].health / 50)
-            color = self.tiles[data[3]] if data[3] != 0 else self.get_health_color(health_val)
-            try:
-                pygame.draw.rect(self, color, self.map_rects[x][y][0])
-            except:
-                pass
-            #pygame.draw.rect(self, (0, 0, 0), self.map_rects[x][y][0], 1)   # Grid Effect
+        for player in self.game.players:
+            health_percent = max(0, player.health / 50)
+            color = self.get_health_color(health_percent)
+
+            pygame.draw.rect(self.goal_mid, color, player.territory)
+
+        self.blit(self.goal_mid, (0, 0))
 
     def draw_units(self):
         # Get all units on map
@@ -111,19 +118,24 @@ class GameSurface(pygame.Surface):
                     continue
 
             for unit in player.units:
-                pos = (unit.x * 32, unit.y * 32)
-                unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
-                self.blit(pygame.transform.scale(unit.icon_image, (32, 32)), unit_rect)
-                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Outline Effect
+                pos_x = (unit.x * 32) + (32 * (1 - (unit.tick_counter / unit.tick_speed))) * unit.player.direction
+                pos_y = (unit.y * 32)
+                position = (pos_x, pos_y, 32, 32)
+
+                self.blit(unit.icon_image, position)
+                #pygame.draw.rect(self, player.player_color, position, 2)   # Outline Effect
 
     def draw_buildings(self):
         # Get all units on map
         for player in self.game.players:
             for building in player.buildings:
-                pos = (building.x * 32, building.y * 32)
-                unit_rect = pygame.Rect(pos[0], pos[1], 32, 32)
-                self.blit(pygame.transform.scale(building.icon_image, (32, 32)), unit_rect)
-                pygame.draw.rect(self, player.player_color, (pos[0], pos[1], 32, 32), 2)   # Outline Effect
+
+                pos_x = building.x * 32
+                pos_y = building.y * 32
+                position = (pos_x, pos_y, 32, 32)
+
+                self.blit(building.icon_image, position)
+                #pygame.draw.rect(self, player.player_color, position, 2)   # Outline Effect
 
     def draw_cursor(self):
         for player in self.game.players:

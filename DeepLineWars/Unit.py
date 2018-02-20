@@ -20,14 +20,22 @@ class Unit:
         self.player = None
         self.despawn = False
 
-        self.icon_image = pygame.image.load(join(dir_path, "sprites/units/%s") % self.icon_name)
+        self.icon_image = pygame.transform.scale(pygame.image.load(join(dir_path, "sprites/units/%s") % self.icon_name), (32, 32))
         self.level = data["level"]
 
         self.x = None
         self.y = None
 
+        self.target_x = None
+        self.target_y = None
+
     def setup(self, player):
         self.player = player
+
+        # Draw outline with correct color
+        pygame.draw.rect(self.icon_image, player.player_color, (0, 0, 32, 32), 2)   # Outline Effect
+        self.icon_image = self.icon_image.convert()
+
         self.tick_speed = self.player.game.ticks_per_second / self.speed
         self.tick_counter = self.tick_speed
 

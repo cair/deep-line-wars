@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "name": "Basic-Tower",
+    "icon": "tower_1.png",
+    "health": 100,
+    "attack_min": 2,
+    "attack_max": 4,
+    "attack_pen": 2,
+    "attack_speed": 3,
+    "attack_range": 3,
+    "level": 0,
+    "gold_cost": 10
+
+  },
+  {
+    "id": 2,
+    "name": "Fast-Tower",
+    "icon": "tower_2.png",
+    "health": 100,
+    "attack_min": 2,
+    "attack_max": 4,
+    "attack_pen": 2,
+    "attack_speed": 4,
+    "attack_range": 3,
+    "level": 0,
+    "gold_cost": 20
+  },
+  {
+    "id": 3,
+    "name": "Faster-Tower",
+    "icon": "tower_2.png",
+    "health": 100,
+    "attack_min": 4,
+    "attack_max": 6,
+    "attack_pen": 3,
+    "attack_speed": 5,
+    "attack_range": 3,
+    "level": 1,
+    "gold_cost": 30
+  }
+]

@@ -1,4 +1,3 @@
-
 {
   "game": {
     "width": 11,
@@ -6,6 +5,7 @@
     "tile_width": 32,
     "tile_height": 32
   },
+  "representation": "image",
   "mechanics": {
     "complexity": {
       "build_anywhere": false
@@ -18,17 +18,8 @@
     "ticks_per_second": 10,
     "fps": 10,
     "ups": 10008000,
-    "max_aps": 10,
-    "statps": 1,
     "income_ratio": 0.20,
     "kill_gold_ratio": 0.10
-  },
-  "ai": {
-    "enabled": true,
-    "agents": [
-      [],
-      []
-    ]
   },
   "gui": {
     "enabled": true,
