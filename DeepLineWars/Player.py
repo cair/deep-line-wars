@@ -37,6 +37,7 @@ class Player:
         self.income_frequency = game.config.mechanics.income_frequency * game.config.mechanics.ticks_per_second
 
         self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
+        self.cursor_colors = (95, 252, 242) if p_id == 1 else (212, 247, 86)
         self.direction = 1 if p_id == 1 else -1
 
         self.action_space = [

@@ -1,11 +1,10 @@
 import uuid
 import json
 import pygame
-import importlib
-import scipy.misc
 import numpy as np
-from os.path import realpath, dirname, join
+from skimage import color, transform, exposure
 
+from os.path import realpath, dirname, join
 from .Building import Building
 from .GUI import GUI, NoGUI
 from .Player import Player
@@ -33,7 +32,6 @@ class Game:
 
         self.width = self.config.game.width
         self.height = self.config.game.height
-        self.representation = self.config.representation
 
         self.ticks = 0
         self.running = False
@@ -43,7 +41,7 @@ class Game:
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.width, self.height))
+        self.map = np.zeros((5, self.width, self.height), dtype=np.uint8)
         self.center_area = None
         self.setup_environment()
         self.action_space = 2  # 0 = Build, 1 = Spawn
@@ -55,6 +53,7 @@ class Game:
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
+        self.primary_player = p1
 
         self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
 
@@ -113,7 +112,7 @@ class Game:
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
-    def reset(self, _player=None):
+    def reset(self):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -129,44 +128,27 @@ class Game:
         self.winner = None
         self.ticks = 0
 
-        if _player:
-            return self.get_state(_player)
+    def get_state(self, representation="raw"):
 
-        return None
+        if representation == "raw":
+            return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
 
-    def get_state(self, player):
+        elif representation == "image":
+            image = np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8)
+            image = transform.resize(image, (84, 84), mode="constant")
+            #image = exposure.rescale_intensity(image, out_range=(0, 255))
+            return image
 
-        if self.representation == "raw":
-            return np.expand_dims(self.map, 0)
-        elif self.representation == "raw_enemy":
-            arr = np.zeros(shape=(1, 2, self.width, self.height))
-
-            for u in player.buildings:
-                arr[0, 0, u.x, u.y] = u.id
-
-            for u in player.opponent.units:
-                arr[0, 1, u.x, u.y] = u.id
-
-            return arr
-
-        elif self.representation == "raw_unit":
-            return np.expand_dims(self.map[1], 0)
-        elif self.representation == "image":
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
-            scaled = np.swapaxes(scaled, 0, 2)
-            return np.expand_dims(scaled, 0)
-        elif self.representation == "image_grayscale":
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
-            scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
-            scaled /= 255
-            scaled = np.expand_dims(scaled, axis=0)
-            return np.expand_dims(scaled, 0)
+        elif representation == "image_grayscaled":
+            image = np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8)
+            image = transform.resize(image, (84, 84), mode="constant")
+            image = color.rgb2gray(image)
+            return image
         else:
-            raise NotImplementedError("representation must be image, raw, heatmap, raw_unit, image_grayscale")
+            raise NotImplementedError("representation must be raw, image, or image_grayscaled")
 
     def update(self):
+
         if self.winner:
             return
 
@@ -182,6 +164,9 @@ class Game:
     def render(self):
         self.gui.event()
         self.gui.draw()
+
+    def render_window(self):
+        self.gui.draw_screen()
 
     def quit(self):
         self.gui.quit()

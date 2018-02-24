@@ -102,7 +102,7 @@ class GameSurface(pygame.Surface):
     def draw_map(self):
         # Draw Z = 0 - Environmental Layer
         for player in self.game.players:
-            health_percent = max(0, player.health / 50)
+            health_percent = 1 - max(0, player.health / 50)
             color = self.get_health_color(health_percent)
 
             pygame.draw.rect(self.goal_mid, color, player.territory)
@@ -139,12 +139,12 @@ class GameSurface(pygame.Surface):
 
     def draw_cursor(self):
         for player in self.game.players:
-            pygame.draw.rect(self, (255, 255, 0), [
+            pygame.draw.rect(self, player.cursor_colors, [
                 player.virtual_cursor_x * 32,(player.virtual_cursor_y * 32), 32, 32
             ])
 
     def draw(self):
-        self.fill((0, 0, 0))
+        #self.fill((0, 0, 0))
         self.draw_map()
         self.draw_units()
         self.draw_buildings()
@@ -361,6 +361,7 @@ class GUI:
             self.surface_plot.draw()
             self.screen.blit(self.surface_plot, (0, self.surface_plot_y))
 
+    def draw_screen(self):
         pygame.display.flip()
 
     def quit(self):
