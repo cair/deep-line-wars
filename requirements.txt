@@ -1,4 +1,4 @@
 pygame
 numpy
-pillow
-scipy
+gym
+opencv-python

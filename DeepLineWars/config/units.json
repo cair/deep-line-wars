@@ -2,7 +2,7 @@
   {
     "name": "Militia",
     "icon": "militia.png",
-    "health": 20,
+    "health": 40,
     "armor": 2,
     "speed": 1,
     "type": 0,
@@ -13,7 +13,7 @@
   {
     "name": "Footman",
     "icon": "footman.png",
-    "health": 40,
+    "health": 80,
     "armor": 4,
     "speed": 1,
     "type": 0,
@@ -24,7 +24,7 @@
   {
     "name": "Grunt",
     "icon": "grunt.png",
-    "health": 60,
+    "health": 140,
     "armor": 4,
     "speed": 1,
     "type": 0,
@@ -35,7 +35,7 @@
   {
     "name": "Armored Grunt",
     "icon": "armored_grunt.png",
-    "health": 100,
+    "health": 190,
     "armor": 6,
     "speed": 1.2,
     "type": 0,

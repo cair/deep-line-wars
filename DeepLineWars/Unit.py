@@ -29,6 +29,8 @@ class Unit:
         self.target_x = None
         self.target_y = None
 
+        self.move_failures = 0
+
     def setup(self, player):
         self.player = player
 
@@ -50,17 +52,25 @@ class Unit:
 
         self.tick_counter -= 1
         if self.tick_counter <= 0:
-            # TODO pathfinding
-            # Update game state
+
+
+            # Identify next position
+            next_x = self.x + self.player.direction
+
+            # If tile is occupied by friendly, try to find a path around it
+
+            # If tile is occupied by enemy, try to find a path around it
+
+            # If tile is occupied and there is not way around, destroy it!
+
+            # Update position of the unit
             self.player.game.map[1][self.x, self.y] = 0
             self.player.game.map[2][self.x, self.y] = 0
-
             self.x += self.player.direction
-
-            # Update game state (again)
             self.player.game.map[1][self.x, self.y] = self.id
             self.player.game.map[2][self.x, self.y] = self.player.id
 
+            # If unit has reached its final destination
             if self.x == self.player.goal_x:
                 # Unit has reached goal
                 self.player.opponent.health -= 1
@@ -68,9 +78,22 @@ class Unit:
 
             self.tick_counter = self.tick_speed
 
+    def find_closest_gap(self, x, y):
+        the_map = self.player.game.map[3][x]
+        the_map_len = len(the_map)
+        expand = 1
+
+        for i in range(self.player.game.height):
+            neg_expand = y - expand
+            pos_expand = y + expand
+            if neg_expand > 0 and the_map[neg_expand] == 0:
+                return x, neg_expand
+            elif pos_expand <= the_map_len and the_map[pos_expand] == 0:
+                return x, pos_expand
+            expand += 1
+
     def remove(self):
         # Unit has reached goal
-        #self.player.opponent.health -= 1
         self.despawn = True
         self.player.game.map[1][self.x, self.y] = 0
         self.player.game.map[2][self.x, self.y] = 0

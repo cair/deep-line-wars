@@ -1,39 +1,39 @@
 import uuid
 import json
 import pygame
-import importlib
-import scipy.misc
 import numpy as np
+import cv2
 from os.path import realpath, dirname, join
-
 from .Building import Building
 from .GUI import GUI, NoGUI
 from .Player import Player
 from .Unit import Unit
-from .utils import dict_to_object
+from .utils import dict_to_object, update
 
 dir_path = dirname(realpath(__file__))
 
 
 class Game:
 
-    def __init__(self, config_override=None):
-        if config_override is None:
-            config_override = {}
-
-        # Game ID
+    def __init__(self, config=None):
+        # Create
         self.id = uuid.uuid4()
+
+        # Create e
+        config = dict() if config is None else config
 
         # Load configuration
         self.unit_data = json.load(open(join(dir_path, "config/units.json"), "r"))
         self.building_data = json.load(open(join(dir_path, "config/buildings.json"), "r"))
+        self.player_levels = json.load(open(join(dir_path, "config/levelup.json"), "r"))
+
         self.config = json.load(open(join(dir_path, "config/config.json"), "r"))
-        self.config.update(config_override)
+        update(self.config, config)
         self.config = dict_to_object(self.config)
+
 
         self.width = self.config.game.width
         self.height = self.config.game.height
-        self.representation = self.config.representation
 
         self.ticks = 0
         self.running = False
@@ -43,7 +43,7 @@ class Game:
         # Z = 2 - Unit Player Layer
         # Z = 3 - Building Layer
         # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.width, self.height))
+        self.map = np.zeros((5, self.width, self.height), dtype=np.uint8)
         self.center_area = None
         self.setup_environment()
         self.action_space = 2  # 0 = Build, 1 = Spawn
@@ -55,9 +55,9 @@ class Game:
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
+        self.primary_player = p1
 
         self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
-
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
@@ -66,18 +66,20 @@ class Game:
     def is_terminal(self):
         return True if self.winner else False
 
-    def step(self, player, action):
+    def step(self, action, representation="RGB"):
+        # Perform actions
+        self.primary_player.do_action(action[0], action[1])
 
-        reward = player.do_action(action)
-        is_terminal = self.is_terminal()
-        if is_terminal:
-            if self.winner != player:
-                reward = -1
-            else:
-                reward = 1
+        # Update state
+        self.update()
 
-        reward = ((self.players[0].health - self.players[1].health) / 50) + 0.01
-        return self.get_state(player), reward, is_terminal, {},
+        # Evaluate terminal state
+        terminal = self.is_terminal()
+
+        # Adjust reward according to terminal value
+        reward = 1 if terminal and self.winner != self.primary_player else -1
+
+        return self.get_state(representation), reward, terminal, {}
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -113,7 +115,7 @@ class Game:
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
-    def reset(self, _player=None):
+    def reset(self, representation="RGB"):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -129,44 +131,24 @@ class Game:
         self.winner = None
         self.ticks = 0
 
-        if _player:
-            return self.get_state(_player)
+        return self.get_state(representation=representation)
 
-        return None
+    def get_state(self, representation="RGB"):
 
-    def get_state(self, player):
-
-        if self.representation == "raw":
-            return np.expand_dims(self.map, 0)
-        elif self.representation == "raw_enemy":
-            arr = np.zeros(shape=(1, 2, self.width, self.height))
-
-            for u in player.buildings:
-                arr[0, 0, u.x, u.y] = u.id
-
-            for u in player.opponent.units:
-                arr[0, 1, u.x, u.y] = u.id
-
-            return arr
-
-        elif self.representation == "raw_unit":
-            return np.expand_dims(self.map[1], 0)
-        elif self.representation == "image":
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
-            scaled = np.swapaxes(scaled, 0, 2)
-            return np.expand_dims(scaled, 0)
-        elif self.representation == "image_grayscale":
-            image = np.array(pygame.surfarray.array3d(self.gui.surface_game))
-            scaled = scipy.misc.imresize(image, (84, 84), 'nearest')
-            scaled = np.dot(scaled[..., :3], [0.299, 0.587, 0.114])
-            scaled /= 255
-            scaled = np.expand_dims(scaled, axis=0)
-            return np.expand_dims(scaled, 0)
+        if representation == "RAW":
+            return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
+        elif representation == "RGB":
+            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
+            return image
+        elif representation == "L":
+            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            return image
         else:
-            raise NotImplementedError("representation must be image, raw, heatmap, raw_unit, image_grayscale")
+            raise NotImplementedError("representation must be RAW, RGB, or L")
 
     def update(self):
+
         if self.winner:
             return
 
@@ -182,6 +164,9 @@ class Game:
     def render(self):
         self.gui.event()
         self.gui.draw()
+
+    def render_window(self):
+        self.gui.draw_screen()
 
     def quit(self):
         self.gui.quit()

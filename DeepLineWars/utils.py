@@ -1,6 +1,7 @@
 from ctypes import cdll, byref, create_string_buffer
 import json
 from collections import namedtuple
+import collections
 
 
 def set_thread_name(str_name):
@@ -13,6 +14,15 @@ def set_thread_name(str_name):
 
 def load_json(file_path):
     return json.load(open(file_path, "rb"))
+
+
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 
 def dict_to_object(d):
