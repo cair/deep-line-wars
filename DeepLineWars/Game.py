@@ -8,7 +8,7 @@ from .Building import Building
 from .GUI import GUI, NoGUI
 from .Player import Player
 from .Unit import Unit
-from .utils import dict_to_object
+from .utils import dict_to_object, update
 
 dir_path = dirname(realpath(__file__))
 
@@ -28,8 +28,9 @@ class Game:
         self.player_levels = json.load(open(join(dir_path, "config/levelup.json"), "r"))
 
         self.config = json.load(open(join(dir_path, "config/config.json"), "r"))
-        self.config.update(config)
+        update(self.config, config)
         self.config = dict_to_object(self.config)
+
 
         self.width = self.config.game.width
         self.height = self.config.game.height

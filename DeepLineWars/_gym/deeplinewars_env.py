@@ -10,23 +10,26 @@ class DeepLineWarsEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, ai="random", config={}):
-        self.env = Game(config_override=config)
+        self.env = Game(config=config)
         self.player = self.env.players[0]
         opponent = self.env.players[1]
 
-        self.observation_space = self.env.get_state(self.player).shape
-        self.action_space = len(self.player.action_space)
+        self.observation_space = self.env.get_state().shape
+        self.action_space = 4
 
     def set_representation(self, rep):
         self.env.representation = rep
-        self.observation_space = self.env.get_state(self.player).shape
+        self.observation_space = self.env.get_state().shape
 
-    def _step(self, action):
+    def step(self, action):
         data = self.env.step(self.player, action)
         self.env.update()
         return data
 
-    def _reset(self):
+    def _seed(self):
+        return None
+
+    def reset(self):
         return self.env.reset(self.player)
 
     def _render(self, mode='human', close=False):
