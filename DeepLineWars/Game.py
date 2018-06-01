@@ -2,7 +2,7 @@ import uuid
 import json
 import pygame
 import numpy as np
-from scipy.misc import imresize, imsave
+import cv2
 from os.path import realpath, dirname, join
 from .Building import Building
 from .GUI import GUI, NoGUI
@@ -15,18 +15,20 @@ dir_path = dirname(realpath(__file__))
 
 class Game:
 
-    def __init__(self, config_override=None):
-        if config_override is None:
-            config_override = {}
-
-        # Game ID
+    def __init__(self, config=None):
+        # Create
         self.id = uuid.uuid4()
+
+        # Create e
+        config = dict() if config is None else config
 
         # Load configuration
         self.unit_data = json.load(open(join(dir_path, "config/units.json"), "r"))
         self.building_data = json.load(open(join(dir_path, "config/buildings.json"), "r"))
+        self.player_levels = json.load(open(join(dir_path, "config/levelup.json"), "r"))
+
         self.config = json.load(open(join(dir_path, "config/config.json"), "r"))
-        self.config.update(config_override)
+        self.config.update(config)
         self.config = dict_to_object(self.config)
 
         self.width = self.config.game.width
@@ -63,18 +65,20 @@ class Game:
     def is_terminal(self):
         return True if self.winner else False
 
-    def step(self, action, representation="image"):
-        reward = self.primary_player.do_action(action[0], action[1]) # TODO fix return val
-        reward = 0
+    def step(self, action, representation="RGB"):
+        # Perform actions
+        self.primary_player.do_action(action[0], action[1])
+
+        # Update state
         self.update()
-        is_terminal = self.is_terminal()
-        if is_terminal:
-            if self.winner != self.primary_player:
-                reward = -1
-            else:
-                reward = 1
-        #reward = ((self.players[0].health - self.players[1].health) / 50) + 0.01
-        return self.get_state(representation), reward, is_terminal, {},
+
+        # Evaluate terminal state
+        terminal = self.is_terminal()
+
+        # Adjust reward according to terminal value
+        reward = 1 if terminal and self.winner != self.primary_player else -1
+
+        return self.get_state(representation), reward, terminal, {}
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -110,7 +114,7 @@ class Game:
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
-    def reset(self, representation="image"):
+    def reset(self, representation="RGB"):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -128,31 +132,19 @@ class Game:
 
         return self.get_state(representation=representation)
 
-    def rgb2gray(self, rgb):
-        r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
-        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
-        return gray
+    def get_state(self, representation="RGB"):
 
-    def get_state(self, representation="image"):
-
-        if representation == "raw":
+        if representation == "RAW":
             return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
-
-        elif representation == "image":
-            self.render()
-            image = np.transpose(np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8))
-            image = imresize(image, (80, 80))
-            #image = exposure.rescale_intensity(image, out_range=(0, 255))
+        elif representation == "RGB":
+            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
             return image
-
-            """elif representation == "image_grayscaled":
-            image = np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8)
-            image = transform.resize(image, (80, 80), mode="constant")
-            image = color.rgb2gray(image)
+        elif representation == "L":
+            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
             return image
-            """
         else:
-            raise NotImplementedError("representation must be raw, image, or image_grayscaled")
+            raise NotImplementedError("representation must be RAW, RGB, or L")
 
     def update(self):
 

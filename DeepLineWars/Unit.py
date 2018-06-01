@@ -1,5 +1,4 @@
 import pygame
-import numpy as np
 from os.path import realpath, dirname, join
 dir_path = dirname(realpath(__file__))
 

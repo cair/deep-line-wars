@@ -1,5 +1,4 @@
 pygame
 numpy
-scikit-image
 gym
-box2d-kengz
+opencv-python

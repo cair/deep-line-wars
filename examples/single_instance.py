@@ -35,13 +35,18 @@ if __name__ == "__main__":
 
     while True:
         for p in game.players:
-            p.do_action(random.randint(0, 12))
+            p.do_action(random.randint(0, 3), random.uniform(0, 1))
 
         game.update()
         game.render()
+
         game.gui.draw_screen()
 
+        if game.is_terminal():
+            game.reset()
 
-        time.sleep(.1)
+        time.sleep(.001)
+
+
 
 

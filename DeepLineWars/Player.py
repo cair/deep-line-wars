@@ -28,22 +28,36 @@ class AgentList:
 
 class Player:
 
-    def __init__(self, p_id, game):
-        # Persistent variables (kept between episodes)
+    def __init__(self, player_id, game):
+        # Game Reference
         self.game = game
-        self.id = p_id
+
+        # Player identification
+        self.id = player_id
+
+        # List of AI Agents
         self.agents = AgentList()
+
+        # Player opponent
         self.opponent = None
-        self.levels = json.load(open(join(dir_path, "config/levelup.json"), "r"))
+
+        # Income frequency
         self.income_frequency = game.config.mechanics.income_frequency * game.config.mechanics.ticks_per_second
 
-        self.player_color = (255, 0, 0) if p_id == 1 else (0, 0, 255)
-        self.cursor_colors = (95, 252, 242) if p_id == 1 else (212, 247, 86)
-        self.direction = 1 if p_id == 1 else -1
+        # Direction of units
+        self.direction = 1 if player_id == 1 else -1
 
-        # Position variables
-        self.spawn_x = 0 if p_id is 1 else game.map[0].shape[0] - 1
-        self.goal_x = game.map[0].shape[0] - 1 if p_id is 1 else 0
+        # Colors
+        self.player_color = (255, 0, 0) if player_id == 1 else (0, 0, 255)
+        self.cursor_colors = (95, 252, 242) if player_id == 1 else (212, 247, 86)
+
+        # Spawn position for player
+        self.spawn_x = 0 if player_id is 1 else self.game.width - 1
+
+        # Goal position for player
+        self.goal_x = self.game.width - 1 if player_id is 1 else 0
+
+        # The calculated territory of the player
         self.territory = (
             1 * 32 if self.direction == 1 else (game.center_area[-1] + 1) * 32,
             0,
@@ -52,7 +66,7 @@ class Player:
             game.height * 32
         )
 
-        # Episode variables (things that should reset)
+        # Episode variables. Resets every episode.
         self.health = None
         self.gold = None
         self.lumber = None
@@ -131,33 +145,6 @@ class Player:
 
         return True
 
-    def do_generic_action(self, a):
-        # 0 = spawn
-        # 1 = build
-
-        if a == 0:
-            # Spawn random unit
-            available = [u for u in self.available_units() if self.can_afford_unit(u)]
-            if len(available) == 0:
-                return -0.1
-
-            ridx = random.randint(0, len(available) - 1)
-            self.spawn((ridx, available[ridx]))
-            return 1
-        elif a == 1:
-            # build building at random loc
-            available = [b for idx, b in enumerate(self.available_buildings()) if self.can_afford_idx(idx)]
-            if len(available) == 0:
-                return -0.1
-
-            ridx = random.randint(0, len(available) - 1)
-            r_x = random.randint(0, (self.game.config["width"] / 2) - 1)
-            r_y = random.randint(0, self.game.config["height"] - 1)
-
-            r_x, r_y = self.rel_pos_to_abs(r_x, r_y)
-            self.build(r_x, r_y, available[ridx])
-            return 1
-
     def do_action(self, a_idx, a_intensity):
 
         # Cannot perform action when game has ended.
@@ -170,12 +157,12 @@ class Player:
             # Move Mouse X
 
             clipped_intensity = max(0, min(action_intensity, 1))
-            self.virtual_cursor_x = int((self.game.width - 1) * clipped_intensity)
+            self.virtual_cursor_x = int(self.game.width * clipped_intensity)
 
         elif action == 1:
             # Move Mouse Y
             clipped_intensity = max(0, min(action_intensity, 1))
-            self.virtual_cursor_y = int((self.game.height - 1) * clipped_intensity)
+            self.virtual_cursor_y = int(self.game.height * clipped_intensity)
 
         elif action == 2:
             # Unit send
@@ -186,7 +173,8 @@ class Player:
 
         elif action == 3:
             # Building build
-            clipped_intensity = int(max(0, min(action_intensity, 2)))
+            clipped_intensity = int(3 * action_intensity)
+
             success = self.build(
                 self.virtual_cursor_x,
                 self.virtual_cursor_y,

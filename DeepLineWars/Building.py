@@ -4,6 +4,7 @@ import random
 from os.path import realpath, dirname, join
 dir_path = dirname(realpath(__file__))
 
+
 class Building:
 
     def __init__(self, data):

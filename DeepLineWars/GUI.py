@@ -336,17 +336,7 @@ class GUI:
             tmp_surf = pygame.transform.rotate(tmp_surf, 90)
             self.screen.blit(tmp_surf, (759 + (i * 100) + i, 510))
 
-
-
-
-
-
     def draw(self):
-        #self.draw_player_select()
-        #self.draw_unit_select()
-        #self.draw_building_select()
-        #self.draw_level_up()
-        #self.draw_heat_maps()
 
         self.surface_game.draw()
         self.screen.blit(self.surface_game, (0, self.surface_game_y))
