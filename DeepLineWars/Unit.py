@@ -53,26 +53,25 @@ class Unit:
 
         self.tick_counter -= 1
         if self.tick_counter <= 0:
-            # TODO pathfinding
-            # Update game state
+
+
+            # Identify next position
+            next_x = self.x + self.player.direction
+
+            # If tile is occupied by friendly, try to find a path around it
+
+            # If tile is occupied by enemy, try to find a path around it
+
+            # If tile is occupied and there is not way around, destroy it!
+
+            # Update position of the unit
             self.player.game.map[1][self.x, self.y] = 0
             self.player.game.map[2][self.x, self.y] = 0
-
             self.x += self.player.direction
-            #next_x = self.x + self.player.direction
-            #next_y = self.y
-
-            #if self.player.game.map[3][next_x, self.y] != 0:
-            #    next_x = self.x
-            #    _, next_y = self.find_closest_gap(next_x, self.y)
-
-            #self.x = next_x
-            #self.y = next_y
-
-            # Update game state (again)
             self.player.game.map[1][self.x, self.y] = self.id
             self.player.game.map[2][self.x, self.y] = self.player.id
 
+            # If unit has reached its final destination
             if self.x == self.player.goal_x:
                 # Unit has reached goal
                 self.player.opponent.health -= 1
@@ -96,7 +95,6 @@ class Unit:
 
     def remove(self):
         # Unit has reached goal
-        #self.player.opponent.health -= 1
         self.despawn = True
         self.player.game.map[1][self.x, self.y] = 0
         self.player.game.map[2][self.x, self.y] = 0

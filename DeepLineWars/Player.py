@@ -3,6 +3,7 @@ import copy
 import random
 import numpy as np
 from os.path import realpath, dirname, join
+
 dir_path = dirname(realpath(__file__))
 
 
@@ -40,29 +41,14 @@ class Player:
         self.cursor_colors = (95, 252, 242) if p_id == 1 else (212, 247, 86)
         self.direction = 1 if p_id == 1 else -1
 
-        self.action_space = [
-            {"action": "Move Cursor Up", "type": "cursor_y", "short": "Cu", "value": -1},
-            {"action": "Move Cursor Down", "type": "cursor_y", "short": "Cd", "value": 1},
-            {"action": "Move Cursor Right", "type": "cursor_x", "short": "Cr", "value": 1},
-            {"action": "Move Cursor Left", "type": "cursor_x", "short": "Cl", "value": -1},
-            {"action": "Purchase Unit 0", "type": "purchase_unit", "short": "U0", "value": 0},
-            {"action": "Purchase Unit 1", "type": "purchase_unit", "short": "U1", "value": 1},
-            {"action": "Purchase Unit 2", "type": "purchase_unit", "short": "U2", "value": 2},
-            {"action": "Purchase Unit 3", "type": "purchase_unit", "short": "U3", "value": 3},
-            {"action": "Purchase Building 0", "type": "purchase_building", "short": "P0", "value": 0},
-            {"action": "Purchase Building 1", "type": "purchase_building", "short": "P1", "value": 1},
-            {"action": "Purchase Building 2", "type": "purchase_building", "short": "P2", "value": 2},
-            {"action": "Purchase Building 3", "type": "purchase_building", "short": "P3", "value": 3},
-            {"action": "No Action", "type": "no_action", "short": "NO", "value": 0},
-        ]
-
         # Position variables
-        self.spawn_x = 0 if p_id is 1 else game.map[0].shape[0]-1
-        self.goal_x = game.map[0].shape[0]-1 if p_id is 1 else 0
+        self.spawn_x = 0 if p_id is 1 else game.map[0].shape[0] - 1
+        self.goal_x = game.map[0].shape[0] - 1 if p_id is 1 else 0
         self.territory = (
             1 * 32 if self.direction == 1 else (game.center_area[-1] + 1) * 32,
             0,
-            (game.center_area[0] - 1) * 32 if self.direction == 1 else ((game.width - 1) - (game.center_area[-1] + 1)) * 32,
+            (game.center_area[0] - 1) * 32 if self.direction == 1 else ((game.width - 1) - (
+                        game.center_area[-1] + 1)) * 32,
             game.height * 32
         )
 
@@ -172,52 +158,52 @@ class Player:
             self.build(r_x, r_y, available[ridx])
             return 1
 
-    def do_action(self, a_idx):
+    def do_action(self, a_idx, a_intensity):
+
         # Cannot perform action when game has ended.
         if self.game.winner:
             return None
 
-        a = self.action_space[a_idx]
+        action = a_idx
+        action_intensity = a_intensity
+        if action == 0:
+            # Move Mouse X
 
+            clipped_intensity = max(0, min(action_intensity, 1))
+            self.virtual_cursor_x = int((self.game.width - 1) * clipped_intensity)
 
-        try:
-            if a["type"] == "cursor_y":
-                prev = self.virtual_cursor_y
-                self.virtual_cursor_y = max(min(self.game.height - 1, self.virtual_cursor_y + a["value"]), 0)
-                if self.virtual_cursor_y == prev:
-                    return -1
-                return 0.1
-            elif a["type"] == "cursor_x":
-                prev = self.virtual_cursor_x
-                self.virtual_cursor_x = max(min(self.game.width - 1, self.virtual_cursor_x + a["value"]), 1)
-                if self.virtual_cursor_x == prev:
-                    return -1
+        elif action == 1:
+            # Move Mouse Y
+            clipped_intensity = max(0, min(action_intensity, 1))
+            self.virtual_cursor_y = int((self.game.height - 1) * clipped_intensity)
 
-                return 0.1
-            elif a["type"] == "purchase_unit":
-                succ = self.spawn(
-                    (a["value"], self.game.unit_shop[a["value"]])
-                )
-                return 0.1 if succ else -1
-            elif a["type"] == "purchase_building":
-                succ = self.build(
-                    self.virtual_cursor_x,
-                    self.virtual_cursor_y,
-                    self.game.building_shop[a["value"]]
-                )
-                return 0.1 if succ else -1
-            elif a["type"] == "no_action":
-                return 0
-            else:
-                print(a)
-        except IndexError as e:
-            return -1  # Punish invalid move
+        elif action == 2:
+            # Unit send
+            clipped_intensity = int(max(0, min(action_intensity, 3)))
+            success = self.spawn(
+                (clipped_intensity, self.game.unit_shop[clipped_intensity])
+            )
 
-        return None
+        elif action == 3:
+            # Building build
+            clipped_intensity = int(max(0, min(action_intensity, 2)))
+            success = self.build(
+                self.virtual_cursor_x,
+                self.virtual_cursor_y,
+                self.game.building_shop[clipped_intensity]
+            )
+        else:
+            raise RuntimeError("Action %s is not part of the action-space" % action)
+
+        return True
 
     def update(self):
+        ##############################################
+        ##
+        ## Income Logic
+        ##
+        ##############################################
 
-        # Income Logic
         # Decrements counter each tick and fires income event when counter reaches 0
         self.income_counter -= 1
         if self.income_counter is 0:
@@ -249,7 +235,7 @@ class Player:
         self.gold += amount
 
     def levelup(self):
-        #Lvelup logic
+        # Lvelup logic
         next_level = self.levels[0]
         if self.gold >= next_level[0] and self.lumber >= next_level[1]:
             self.gold -= next_level[0]
@@ -278,13 +264,14 @@ class Player:
     def build(self, x, y, building):
 
         # Restrict players from placing towers on mid area and on opponents side
-        if self.direction == 1 and not all(i > x for i in self.game.center_area) and not self.game.config.mechanics.complexity.build_anywhere:
+        if self.direction == 1 and not all(
+                i > x for i in self.game.center_area) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
-        elif self.direction == -1 and not all(i < x for i in self.game.center_area) and not self.game.config.mechanics.complexity.build_anywhere:
+        elif self.direction == -1 and not all(
+                i < x for i in self.game.center_area) and not self.game.config.mechanics.complexity.build_anywhere:
             return False
         elif x == 0 or x == self.game.width - 1:
             return False
-
 
         # Ensure that there is no building already on this tile (using layer 4 (Building Player Layer)
         if self.game.map[4][x, y] != 0:
@@ -326,7 +313,7 @@ class Player:
         open_spawn_points = [np.where(self.game.map[1][spawn_x] == 0)[0]][0]
 
         if open_spawn_points.size == 0:
-            #print("No spawn location for unit!")
+            # print("No spawn location for unit!")
             self.spawn_queue.append(data)
             return False
 
@@ -345,5 +332,3 @@ class Player:
         self.units.append(unit)
 
         return True
-
-

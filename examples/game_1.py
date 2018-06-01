@@ -5,6 +5,9 @@ from PIL import Image
 from DeepLineWars.Game import Game
 import uuid
 
+# https://github.com/cair/DeepRTS
+# https://github.com/reinforceio/tensorforce
+
 class GameInstance:
 
     @staticmethod
@@ -104,9 +107,6 @@ class GameInstance:
 if __name__ == "__main__":
     import multiprocessing
     import threading
-
-
-
 
     n_proc = 10
     processes = []

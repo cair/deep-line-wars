@@ -2,8 +2,7 @@ import uuid
 import json
 import pygame
 import numpy as np
-from skimage import color, transform, exposure
-
+from scipy.misc import imresize, imsave
 from os.path import realpath, dirname, join
 from .Building import Building
 from .GUI import GUI, NoGUI
@@ -56,7 +55,6 @@ class Game:
         self.primary_player = p1
 
         self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
-
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
@@ -65,18 +63,18 @@ class Game:
     def is_terminal(self):
         return True if self.winner else False
 
-    def step(self, player, action):
-
-        reward = player.do_action(action)
+    def step(self, action, representation="image"):
+        reward = self.primary_player.do_action(action[0], action[1]) # TODO fix return val
+        reward = 0
+        self.update()
         is_terminal = self.is_terminal()
         if is_terminal:
-            if self.winner != player:
+            if self.winner != self.primary_player:
                 reward = -1
             else:
                 reward = 1
-
-        reward = ((self.players[0].health - self.players[1].health) / 50) + 0.01
-        return self.get_state(player), reward, is_terminal, {},
+        #reward = ((self.players[0].health - self.players[1].health) / 50) + 0.01
+        return self.get_state(representation), reward, is_terminal, {},
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -112,7 +110,7 @@ class Game:
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
-    def reset(self):
+    def reset(self, representation="image"):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -128,22 +126,31 @@ class Game:
         self.winner = None
         self.ticks = 0
 
-    def get_state(self, representation="raw"):
+        return self.get_state(representation=representation)
+
+    def rgb2gray(self, rgb):
+        r, g, b = rgb[:,:,0], rgb[:,:,1], rgb[:,:,2]
+        gray = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        return gray
+
+    def get_state(self, representation="image"):
 
         if representation == "raw":
             return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
 
         elif representation == "image":
-            image = np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8)
-            image = transform.resize(image, (84, 84), mode="constant")
+            self.render()
+            image = np.transpose(np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8))
+            image = imresize(image, (80, 80))
             #image = exposure.rescale_intensity(image, out_range=(0, 255))
             return image
 
-        elif representation == "image_grayscaled":
+            """elif representation == "image_grayscaled":
             image = np.array(pygame.surfarray.pixels3d(self.gui.surface_game), dtype=np.uint8)
-            image = transform.resize(image, (84, 84), mode="constant")
+            image = transform.resize(image, (80, 80), mode="constant")
             image = color.rgb2gray(image)
             return image
+            """
         else:
             raise NotImplementedError("representation must be raw, image, or image_grayscaled")
 
