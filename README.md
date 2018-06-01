@@ -3,39 +3,59 @@ DeepLIneWars is a real time strategy simulator which takes inspiration from Hero
 
 Purpose of this simulator is to use reinforcement learning to achieve perfect play.
 
+## Installation
+```bash
+pip3 install git+https://github.com/CAIR/DeepLineWars.git
+```
 
-## Configuration
-**width**: Width of the map
+## Usage
+Remember that non image representation is channels_first!
+```python
+import gym
+import DeepLineWars # This is required in order to load DeepLineWars
+import os
 
-**height**: Height of the map
+if __name__ == '__main__':
+        
 
-**tile_width**: Width of tiles, i recommend to leave this default
+    # Reset environment
+    env = gym.make("deeplinewars-deterministic-11x11-v0")
+    s = env.reset()
 
-**tile_height**: Height of tiles, i recommend to leave this default
+    # Set terminal state to false
+    terminal = False
 
-**start_health**: Player's start health
+    while not terminal:
+        # Draw environment on screen
+        env.render()  # For image you MUST call this
 
-**start_gold**: Player's start gold
+        # Draw action from distribution
+        a = env.action_space.sample()
 
-**start_lumber**: Player's start lumber (WIP)
+        # Perform action in environment
+        s1, r, t, _ = env.step(a)
+        terminal = t
 
-**start_income**: Player's start income
+        s = s1
+```
 
-**income_frequence**: Frequency of how often gold is received. Measured in seconds
-
-**ticks_per_second**: How many ticks a second is worth. This resolution increases precision but reduced performance. default is recommended.
-
-**fps**: How often GUI is redrawn
-
-**ups**: How often the game state is updated
-
-**statps**: Statistics Per Second, for now this is only the FPS/UPS caption update frequency
-
-**income_ratio**: A percentage ratio of how much income is increased with based on cost of a unit. Lets say you purchase a unit that costs 10 gold. You will then get a income increase of 2 gold given that the ratio is 0.20.
-
-**kill_gold_ratio**: Gold is also received when you kill a opponents unit. Works like income_ratio only that it is a flat gold increase
-
-**ai**: A list of Artificial Intelligence scripts. these scripts should be located in /rl directory. The first two items in the list will be used. Also **SILENTLY IGNORED** if they are missing.
+### Environments
+There are several environments available for Deep Line Wars
+```
+deeplinewars-deterministic-11x11-v0
+deeplinewars-deterministic-13x13-v0
+deeplinewars-deterministic-15x15-v0
+deeplinewars-deterministic-17x17-v0
+deeplinewars-random-v0
+deeplinewars-shuffle-11x11-v0
+deeplinewars-shuffle-13x13-v0
+deeplinewars-shuffle-15x15-v0
+deeplinewars-shuffle-17x17-v0
+deeplinewars-stochastic-11x11-v0
+deeplinewars-stochastic-13x13-v0
+deeplinewars-stochastic-15x15-v0
+deeplinewars-stochastic-17x17-v0
+```
 
 ## Licence
 Copyright 2017 Per-Arne Andersen
