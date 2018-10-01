@@ -4,6 +4,8 @@ import random
 import numpy as np
 from os.path import realpath, dirname, join
 
+from deep_line_wars import action_space
+
 dir_path = dirname(realpath(__file__))
 
 
@@ -28,7 +30,7 @@ class AgentList:
 
 class Player:
 
-    def __init__(self, player_id, game):
+    def __init__(self, player_id, game, action_space=action_space.StandardActionSpace):
         # Game Reference
         self.game = game
 
@@ -37,6 +39,9 @@ class Player:
 
         # List of AI Agents
         self.agents = AgentList()
+
+        # The player action_space
+        self.action_space = action_space(self.game)
 
         # Player opponent
         self.opponent = None
@@ -57,7 +62,7 @@ class Player:
         # Goal position for player
         self.goal_x = self.game.width - 1 if player_id is 1 else 0
 
-        # The calculated territory of the player
+        # The calculated territory of the player, is a square
         self.territory = (
             1 * 32 if self.direction == 1 else (game.center_area[-1] + 1) * 32,
             0,
@@ -99,6 +104,13 @@ class Player:
         self.virtual_cursor_x = self.spawn_x
         self.virtual_cursor_y = int(self.game.height / 2)
 
+    def set_cursor(self, x, y):
+        # Cannot perform action when game has ended.
+        if self.game.winner:
+            return False
+        self.virtual_cursor_x = max(min(self.game.width - 1, self.game.selected_player.virtual_cursor_x + x), 0)
+        self.virtual_cursor_y = max(min(self.game.height - 1, self.game.selected_player.virtual_cursor_y + y), 0)
+
     def available_buildings(self):
         return [b for b in self.game.building_shop if b.level <= self.level]
 
@@ -115,12 +127,6 @@ class Player:
         except IndexError as e:
             if last_if_error:
                 return avb.pop()
-
-    def get_actions(self, idx):
-        return self.action_space[idx]
-
-    def get_random_action(self):
-        return random.choice(self.action_space)
 
     def get_score(self):
         return (self.stat_spawn_counter + self.income) * (100 * self.level)
@@ -145,45 +151,12 @@ class Player:
 
         return True
 
-    def do_action(self, a_idx, a_intensity):
-
+    def do_action(self,):
         # Cannot perform action when game has ended.
         if self.game.winner:
-            return None
+            return False
 
-        action = a_idx
-        action_intensity = a_intensity
-        if action == 0:
-            # Move Mouse X
-
-            clipped_intensity = max(0, min(action_intensity, 1))
-            self.virtual_cursor_x = int(self.game.width * clipped_intensity)
-
-        elif action == 1:
-            # Move Mouse Y
-            clipped_intensity = max(0, min(action_intensity, 1))
-            self.virtual_cursor_y = int(self.game.height * clipped_intensity)
-
-        elif action == 2:
-            # Unit send
-            clipped_intensity = int(max(0, min(action_intensity, 3)))
-            success = self.spawn(
-                (clipped_intensity, self.game.unit_shop[clipped_intensity])
-            )
-
-        elif action == 3:
-            # Building build
-            clipped_intensity = int(3 * action_intensity)
-
-            success = self.build(
-                self.virtual_cursor_x,
-                self.virtual_cursor_y,
-                self.game.building_shop[clipped_intensity]
-            )
-        else:
-            raise RuntimeError("Action %s is not part of the action-space" % action)
-
-        return True
+        return self.action_space.perform(a)
 
     def update(self):
         ##############################################

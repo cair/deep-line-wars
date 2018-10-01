@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from PIL import Image
+import cv2
 
 
 class TopSurface(pygame.Surface):
@@ -69,7 +69,7 @@ class GameSurface(pygame.Surface):
             3: (0, 255, 255)
         }
 
-        self.config_draw_friendly = self.game.config.gui.draw_friendly
+        self.config_draw_friendly = self.game.config.gui_draw_friendly
 
         # Create rectangles for map
         """self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
@@ -122,7 +122,7 @@ class GameSurface(pygame.Surface):
                 pos_y = (unit.y * 32)
                 position = (pos_x, pos_y, 32, 32)
 
-                self.blit(unit.icon_image, position)
+                self.blit(pygame.surfarray.make_surface(unit.icon_image), position)
                 #pygame.draw.rect(self, player.player_color, position, 2)   # Outline Effect
 
     def draw_buildings(self):
@@ -134,7 +134,7 @@ class GameSurface(pygame.Surface):
                 pos_y = building.y * 32
                 position = (pos_x, pos_y, 32, 32)
 
-                self.blit(building.icon_image, position)
+                self.blit(pygame.surfarray.make_surface(building.icon_image), position)
                 #pygame.draw.rect(self, player.player_color, position, 2)   # Outline Effect
 
     def draw_cursor(self):
@@ -251,7 +251,8 @@ class GUI:
         # Game variables
         self.game = game
 
-        self.minimal = game.config.gui.minimal
+        #self.minimal = game.config.gui.minimal
+        self.minimal = True
 
         # Font definition
         self.font = pygame.font.SysFont("Comic Sans MS", 25)
@@ -309,6 +310,12 @@ class GUI:
             self.surface_game_y = 0
 
         self.i = 0
+
+    def get_state(self, grayscale=False):
+        image = np.array(pygame.surfarray.pixels3d(self.surface_game))
+        if grayscale:
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        return image
 
     def player(self):
         return self.game.players[self.selected_player]
@@ -409,23 +416,3 @@ class GUI:
 
                             building_data = self.building_list[self.selected_building][1]
                             self.player().build(tile[1], tile[2], building_data)"""
-
-
-
-
-
-class NoGUI():
-    def __init__(self, game):
-        self.game = game
-
-    def caption(self):
-        print("%s - DeepLineWars v1.0 [%sfps|%sups]" % (self.game.id, self.game.frame_counter, self.game.update_counter))
-
-    def event(self):
-        pass
-
-    def draw(self):
-        pass
-
-    def quit(self):
-        pass

@@ -1,3 +1,5 @@
+import cv2
+
 import pygame
 import math
 import random
@@ -19,7 +21,10 @@ class Building:
         self.id = data["id"]
         self.gold_cost = data["gold_cost"]
 
-        self.icon_image = pygame.transform.scale(pygame.image.load(join(dir_path, "sprites/buildings/%s") % self.icon), (32, 32))
+        self.icon_image = cv2.imread(join(dir_path, "sprites/buildings/%s") % self.icon)
+        self.icon_image = cv2.cvtColor(self.icon_image, cv2.COLOR_BGR2RGB)
+        self.icon_image = cv2.resize(self.icon_image, (32, 32))
+        self.icon_image = cv2.rotate(self.icon_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
         self.level = data["level"]
 
@@ -33,8 +38,7 @@ class Building:
         self.player = player
 
         # Draw outline with correct color
-        pygame.draw.rect(self.icon_image, player.player_color, (0, 0, 32, 32), 2)   # Outline Effect
-        self.icon_image = self.icon_image.convert()
+        cv2.rectangle(self.icon_image, (0, 0), (32, 32), (255, 255, 255), 2)
 
         self.tick_speed = self.player.game.ticks_per_second / self.attack_speed
         self.tick_counter = self.tick_speed

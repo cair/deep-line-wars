@@ -1,8 +1,7 @@
 import gym
-from gym import error, spaces, utils
 from gym.utils import seeding
 
-from DeepLineWars.Game import Game
+from deep_line_wars.game import Game
 
 
 class DeepLineWarsEnv(gym.Env):

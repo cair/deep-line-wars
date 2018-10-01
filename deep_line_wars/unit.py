@@ -1,4 +1,5 @@
 import pygame
+import cv2
 from os.path import realpath, dirname, join
 dir_path = dirname(realpath(__file__))
 
@@ -20,7 +21,11 @@ class Unit:
         self.player = None
         self.despawn = False
 
-        self.icon_image = pygame.transform.scale(pygame.image.load(join(dir_path, "sprites/units/%s") % self.icon_name), (32, 32))
+        self.icon_image = cv2.imread(join(dir_path, "sprites/units/%s") % self.icon_name)
+        self.icon_image = cv2.cvtColor(self.icon_image, cv2.COLOR_BGR2RGB)
+        self.icon_image = cv2.resize(self.icon_image, (32, 32))
+        self.icon_image = cv2.rotate(self.icon_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
         self.level = data["level"]
 
         self.x = None
@@ -35,8 +40,7 @@ class Unit:
         self.player = player
 
         # Draw outline with correct color
-        pygame.draw.rect(self.icon_image, player.player_color, (0, 0, 32, 32), 2)   # Outline Effect
-        self.icon_image = self.icon_image.convert()
+        cv2.rectangle(self.icon_image, (0, 0), (32, 32), (255, 255, 255), 3)
 
         self.tick_speed = self.player.game.ticks_per_second / self.speed
         self.tick_counter = self.tick_speed

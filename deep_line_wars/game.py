@@ -1,36 +1,32 @@
 import uuid
-import json
-import pygame
 import numpy as np
-import cv2
-from os.path import realpath, dirname, join
-from .Building import Building
-from .GUI import GUI, NoGUI
-from .Player import Player
-from .Unit import Unit
-from .utils import dict_to_object, update
 
+from os.path import realpath, dirname, join
+from .building import Building
+from .player import Player
+from .unit import Unit
+from .utils import dict_to_object, update
+from deep_line_wars import config as conf
 dir_path = dirname(realpath(__file__))
 
 
 class Game:
 
-    def __init__(self, config=None):
+    def __init__(self, config=dict(), unit_config=conf.unit, building_config=conf.building, levelup_config=conf.levelup):
         # Create
         self.id = uuid.uuid4()
 
-        # Create e
-        config = dict() if config is None else config
-
         # Load configuration
-        self.unit_data = json.load(open(join(dir_path, "config/units.json"), "r"))
-        self.building_data = json.load(open(join(dir_path, "config/buildings.json"), "r"))
-        self.player_levels = json.load(open(join(dir_path, "config/levelup.json"), "r"))
+        self.unit_data = unit_config
+        self.building_data = building_config
+        self.player_levels = levelup_config
 
-        self.config = json.load(open(join(dir_path, "config/config.json"), "r"))
+        # Load Configuration
+        # Apply customizations
+        # Transform to Object
+        self.config = conf.default_config
         update(self.config, config)
         self.config = dict_to_object(self.config)
-
 
         self.width = self.config.game.width
         self.height = self.config.game.height
@@ -55,9 +51,9 @@ class Game:
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
-        self.primary_player = p1
+        self.selected_player = p1
 
-        self.gui = GUI(self) if self.config.gui.enabled else NoGUI(self)
+        self.gui = self.config.gui(self)
         self.unit_shop = [Unit(data) for data in self.unit_data]
         self.building_shop = [Building(data) for data in self.building_data]
 
@@ -66,9 +62,10 @@ class Game:
     def is_terminal(self):
         return True if self.winner else False
 
-    def step(self, action, representation="RGB"):
-        # Perform actions
-        self.primary_player.do_action(action[0], action[1])
+    def step(self, action):
+        
+        # Perform Action
+        self.selected_player.action_space.perform(action)
 
         # Update state
         self.update()
@@ -77,9 +74,9 @@ class Game:
         terminal = self.is_terminal()
 
         # Adjust reward according to terminal value
-        reward = 1 if terminal and self.winner != self.primary_player else -1
+        reward = 1 if terminal and self.winner != self.selected_player else -1
 
-        return self.get_state(representation), reward, terminal, {}
+        return self.get_state(), reward, terminal, {}
 
     def setup_environment(self):
         env_map = self.map[0]
@@ -115,7 +112,7 @@ class Game:
     def game_time(self):
         return self.ticks / self.ticks_per_second
 
-    def reset(self, representation="RGB"):
+    def reset(self):
         self.map[1].fill(0)
         self.map[2].fill(0)
         self.map[3].fill(0)
@@ -131,19 +128,19 @@ class Game:
         self.winner = None
         self.ticks = 0
 
-        return self.get_state(representation=representation)
+        return self.get_state()
 
-    def get_state(self, representation="RGB"):
+    def _get_raw_state(self):
+        return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
 
-        if representation == "RAW":
-            return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
-        elif representation == "RGB":
-            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
-            return image
-        elif representation == "L":
-            image = cv2.resize(pygame.surfarray.pixels3d(self.gui.surface_game), (80, 80))
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            return image
+    def get_state(self):
+
+        if self.config.state_representation == "RAW":
+            return self._get_raw_state()
+        elif self.config.state_representation == "RGB":
+            return self.gui.get_state(grayscale=False)
+        elif self.config.state_representation == "L":
+            return self.gui.get_state(grayscale=True)
         else:
             raise NotImplementedError("representation must be RAW, RGB, or L")
 
@@ -173,3 +170,9 @@ class Game:
 
     def caption(self):
         self.gui.caption()
+
+    def flip_player(self):
+        self.selected_player = self.selected_player.opponent
+
+    def get_action_space(self):
+        return self.selected_player.action_space.size
