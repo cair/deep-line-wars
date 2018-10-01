@@ -74,7 +74,7 @@ class Game:
         terminal = self.is_terminal()
 
         # Adjust reward according to terminal value
-        reward = 1 if terminal and self.winner != self.selected_player else -1
+        reward = 1 if terminal and self.winner != self.selected_player else 0
 
         return self.get_state(), reward, terminal, {}
 

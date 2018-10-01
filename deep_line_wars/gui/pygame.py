@@ -102,7 +102,7 @@ class GameSurface(pygame.Surface):
     def draw_map(self):
         # Draw Z = 0 - Environmental Layer
         for player in self.game.players:
-            health_percent = 1 - max(0, player.health / 50)
+            health_percent = 1 - max(0, player.health / self.game.config.mechanics.start_health)
             color = self.get_health_color(health_percent)
 
             pygame.draw.rect(self.goal_mid, color, player.territory)

@@ -43,7 +43,7 @@ class GUI:
 
         # DRAW background
         for player in self.game.players:
-            health_percent = 1 - max(0, player.health / 50)
+            health_percent = 1 - max(0, player.health / self.game.config.mechanics.start_health)
             color = self.get_health_color(health_percent)
 
             self.canvas[

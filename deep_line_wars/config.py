@@ -11,7 +11,7 @@ default_config = dict(
     complexity=dict(
       build_anywhere=False
     ),
-    start_health=50,
+    start_health=10,
     start_gold=100,
     start_lumber=0,
     start_income=20,
