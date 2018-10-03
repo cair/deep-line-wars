@@ -1,6 +1,5 @@
-import random
 import torch
-
+import numpy as np
 
 class ExperienceReplay(object):
 
@@ -28,19 +27,11 @@ class ExperienceReplay(object):
         self.memory_size = min(self.memory_size + 1, self.memory_capacity)
 
     def sample_memory(self):
+        sampling_area = torch.tensor(np.random.randint(0, self.memory_size, self.memory_batch_size))
 
-        state_batch = torch.empty((self.memory_batch_size, ) + (4, ), dtype=torch.float)  # from spec
-        state1_batch = torch.empty((self.memory_batch_size, ) + (4, ), dtype=torch.float)  # from spec
-        reward_batch = torch.empty((self.memory_batch_size, ), dtype=torch.float)
-        action_batch = torch.empty((self.memory_batch_size, ) + (1, ), dtype=torch.long)  # from spec
-        terminal_batch = torch.empty((self.memory_batch_size, ), dtype=torch.float)
-
-        for j, i in enumerate(random.sample(range(0, self.memory_size - 1), self.memory_batch_size)):
-            state_batch[j] = self.memory_state[i]
-            state1_batch[j] = self.memory_state1[i]
-            reward_batch[j] = self.memory_rewards[i]
-            action_batch[j] = self.memory_actions[i]
-            terminal_batch[j] = self.memory_terminal[i]
-
-        return state_batch, action_batch, reward_batch, state1_batch, terminal_batch
+        return (self.memory_state.index_select(0, sampling_area),
+               self.memory_actions.index_select(0, sampling_area),
+               self.memory_rewards.index_select(0, sampling_area),
+               self.memory_state1.index_select(0, sampling_area),
+               self.memory_terminal.index_select(0, sampling_area))
 
