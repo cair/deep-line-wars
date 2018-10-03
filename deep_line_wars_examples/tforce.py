@@ -9,11 +9,11 @@ import time
 from tensorforce.agents import PPOAgent, DQNAgent
 
 from deep_line_wars.game import Game
-from deep_line_wars.gui import pygame, dummy, opencv
-
+from deep_line_wars.gui import  dummy, opencv
+# https://github.com/reinforceio/tensorforce/blob/master/FAQ.md
 if __name__ == "__main__":
 
-    g = Game(dict(gui=pygame.GUI))
+    g = Game(dict(gui=opencv.GUI))
 
     dqn = dict(
         states=dict(type='float', shape=(80, 80, 3)),
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         ],
         update_mode=dict(
             unit="timesteps",
-            batch_size=64,
+            batch_size=32,
             frequency=4
         ),
         memory=dict(
@@ -57,24 +57,42 @@ if __name__ == "__main__":
         ),
         optimizer=dict(
             type="clipped_step",
-            clipping_value=0.1,
+            clipping_value=1.0,
             optimizer=dict(
                 type="adam",
-                learning_rate=1e-3
+                learning_rate=1e-4
             )
         ),
-        discount=0.99,
+        discount=0.94,
         entropy_regularization=None,
         double_q_model=True,
 
         target_sync_frequency=1000,
-        target_update_weight=1.0,
+        target_update_weight=0.5,
 
         actions_exploration=dict(
             type="epsilon_anneal",
             initial_epsilon=1.0,
             final_epsilon=0.0,
-            timesteps=1000000
+            timesteps=10000
+        ),
+        #saver=dict(
+        #    directory=None,
+        #    seconds=600
+        #),
+        summarizer=dict(
+            directory="./board",
+            labels=["graph", "total-loss", "gradients",
+                    'gradients_scalar',
+                    'regularization',
+                    'states', 'actions', 'rewards',
+                    'losses',
+                    'variables']
+        ),
+        execution=dict(
+            type="single",
+            session_config=None,
+            distributed_spec=None
         )
     )
 
@@ -149,24 +167,23 @@ if __name__ == "__main__":
     agent = DQNAgent(**dqn)
     #agent = PPOAgent(**ppo)
     statistics = {}
+    actions = [0 for x in range(16)]
     s = time.time()
-    skip_steps = 4
+    skip_steps = 8
+    g.flip_player()
     for i in range(100000):
         state = g.reset()
-        g.render()
-        state = g.get_state()
+
         while not g.is_terminal():
             state = cv2.resize(state, (80, 80))
             # Perform Action
             action = agent.act(state)
-            s1, r, t, _ = g.step(action)
+            actions[action] += 1
+            _, r, t, _ = g.step(action)
 
-            g.render()
-            s1 = g.get_state()
 
             # Add experience, agent automatically updates model according to batch size
             agent.observe(reward=r, terminal=t)
-
             g.flip_player()
             a2 = random.randint(0, g.get_action_space() - 1)
             _, _, t2, _ = g.step(a2)
@@ -175,7 +192,6 @@ if __name__ == "__main__":
             for _ in range(skip_steps):
                 g.update()
             # Re render and get state
-            g.render()
             s1 = g.get_state()
 
 
@@ -184,7 +200,7 @@ if __name__ == "__main__":
                     statistics[g.winner.id] = 1
                 else:
                     statistics[g.winner.id] += 1
-                print(statistics)
+                print(statistics, actions)
                 g.render_window()
 
             state = s1

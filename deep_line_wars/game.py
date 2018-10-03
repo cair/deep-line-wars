@@ -12,7 +12,7 @@ dir_path = dirname(realpath(__file__))
 
 class Game:
 
-    def __init__(self, config=dict(), unit_config=conf.unit, building_config=conf.building, levelup_config=conf.levelup):
+    def __init__(self, config=None, unit_config=conf.unit, building_config=conf.building, levelup_config=conf.level_up):
         # Create
         self.id = uuid.uuid4()
 
@@ -25,8 +25,11 @@ class Game:
         # Apply customizations
         # Transform to Object
         self.config = conf.default_config
-        update(self.config, config)
+        if type(config) == dict:
+            update(self.config, config)
+
         self.config = dict_to_object(self.config)
+
 
         self.width = self.config.game.width
         self.height = self.config.game.height
@@ -42,7 +45,6 @@ class Game:
         self.map = np.zeros((5, self.width, self.height), dtype=np.uint8)
         self.center_area = None
         self.setup_environment()
-        self.action_space = 2  # 0 = Build, 1 = Spawn
 
         self.winner = None
 
@@ -74,8 +76,10 @@ class Game:
         terminal = self.is_terminal()
 
         # Adjust reward according to terminal value
-        reward = 1 if terminal and self.winner != self.selected_player else 0
-
+        if terminal:
+            reward = -1 if self.winner != self.selected_player else 1
+        else:
+            reward = -1 if self.selected_player.health < self.selected_player.opponent.health else 0.001
         return self.get_state(), reward, terminal, {}
 
     def setup_environment(self):
@@ -138,8 +142,10 @@ class Game:
         if self.config.state_representation == "RAW":
             return self._get_raw_state()
         elif self.config.state_representation == "RGB":
+            self.render()
             return self.gui.get_state(grayscale=False)
         elif self.config.state_representation == "L":
+            self.render()
             return self.gui.get_state(grayscale=True)
         else:
             raise NotImplementedError("representation must be RAW, RGB, or L")

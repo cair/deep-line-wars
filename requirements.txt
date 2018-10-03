@@ -1,5 +1,3 @@
-tensorforce
-tensorflow
 pygame
 numpy
 gym

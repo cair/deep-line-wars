@@ -1,12 +1,9 @@
 import cv2
 import numpy as np
-#import pygame
 
 class GUI:
 
     def __init__(self, game):
-        #SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
-        #self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         self.game = game
         self.tile_colors = {
             0: (0, 123, 12),  # Grass
@@ -95,10 +92,6 @@ class GUI:
             x:x+self.tile_size,
             y:y+self.tile_size] = player.cursor_colors  # cursor = np.tile(player.cursor_colors, (32, 32, 1))
 
-        #self.screen.blit(pygame.surfarray.make_surface(self.canvas), (0,0))
-        #pygame.display.flip()
-        #cv2.imwrite("/home/per/img.png", self.canvas)
-
 
     def quit(self):
         pass
@@ -106,8 +99,9 @@ class GUI:
     def get_state(self, grayscale=False):
         image = np.array(self.canvas)
         if grayscale:
-            return cv2.cvtColor(self.canvas, cv2.COLOR_RGB2GRAY)
+            return cv2.cvtColor(self.canvas, cv2.COLOR_BGR2GRAY)
+
         return image
 
     def draw_screen(self):
-        pass
+        cv2.imwrite("./opencv.png", cv2.cvtColor(np.rot90(self.canvas, 3), cv2.COLOR_BGR2RGB))

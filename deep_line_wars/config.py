@@ -1,33 +1,33 @@
 from deep_line_wars.gui import dummy
 
-default_config =dict(
-  game=dict(
-    width=11,
-    height=11,
-    tile_width=32,
-    tile_height=32
-  ),
-  mechanics=dict(
-    complexity=dict(
-      build_anywhere=False
+default_config = dict(
+    game=dict(
+        width=11,
+        height=11,
+        tile_width=32,
+        tile_height=32
     ),
-    start_health=10,
-    start_gold=100,
-    start_lumber=0,
-    start_income=20,
-    income_frequency=10,
-    ticks_per_second=10,
-    fps=10,
-    ups=10008000,
-    income_ratio=0.20,
-    kill_gold_ratio=0.10
-  ),
+    mechanics=dict(
+        complexity=dict(
+            build_anywhere=False
+        ),
+        start_health=50,
+        start_gold=50,
+        start_lumber=0,
+        start_income=20,
+        income_frequency=10,
+        ticks_per_second=10,
+        fps=10,
+        ups=10008000,
+        income_ratio=0.20,
+        kill_gold_ratio=0.10
+    ),
     gui=dummy.GUI,
     gui_draw_friendly=True,
     state_representation="RGB"  # RAW, RGB, L
 )
 
-building=[
+building = [
     dict(
         id=1,
         name="Basic-Tower",
@@ -70,14 +70,14 @@ building=[
     )
 ]
 
-levelup=[
+level_up = [
     [100, 0],
     [1000, 0],
     [10000, 0],
     [100000, 1]
 ]
 
-type=[
+unit_type = [
     dict(
         id=0,
         name="Ground",
@@ -90,7 +90,7 @@ type=[
     )
 ]
 
-unit =[
+unit = [
     dict(
         name="Militia",
         icon="militia.png",
@@ -138,6 +138,6 @@ unit =[
 
 ]
 
-upgrades=[
+upgrades = [
     dict()
 ]
