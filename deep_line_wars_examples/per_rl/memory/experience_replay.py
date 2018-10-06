@@ -23,7 +23,6 @@ class ExperienceReplay(object):
         self.memory_actions[self._memory_pointer] = a
         self.memory_terminal[self._memory_pointer] = 1 if t else 0
         self._memory_pointer = (self._memory_pointer + 1) % self.memory_capacity
-
         self.memory_size = min(self.memory_size + 1, self.memory_capacity)
 
     def sample_memory(self):

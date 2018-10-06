@@ -1,8 +1,11 @@
 import random
 
+import time
 import torch
 import torch.nn.functional as F
 import torch.optim
+from tensorboardX import SummaryWriter
+
 from deep_line_wars_examples.per_rl import memory, sampling, models
 from deep_line_wars_examples.per_rl.models import dqn
 from deep_line_wars_examples.per_rl.memory import Memory
@@ -41,6 +44,8 @@ class Agent(BaseObject):
         self.latest_action = None
         self.latest_reward = None
 
+        self.optimization_iterator = 0
+
     def _train(self):
         raise NotImplementedError("Agents must inherit the _train function to qualify as an agent!")
 
@@ -49,6 +54,7 @@ class Agent(BaseObject):
         if self.has_memory and self.memory_size > self.memory_batch_size:
             minibatch = self.sample_memory()
             self._train(minibatch)
+            self.optimization_iterator += 1
 
     def observe(self, s, r, t):
         #########
@@ -81,16 +87,111 @@ class Agent(BaseObject):
             out = self.forward(self.latest_state)
             a = self._act(out)
 
+        # TODO if sentence?
+        a_dist = np.zeros(self.output_shape) # TODO
+        a_dist[a] = 1 # TODO
+        self.log_histogram("action_distribution", a_dist, self.steps) # TODO
+
         self.latest_action = torch.tensor([a])
         return self.latest_action
 
 
-class DQN(Agent, Model, Memory):
+class Environment:
+
+    def __init__(self, spec):
+        env_spec = spec["environment"]
+        self.env = env_spec["model"]
+        self.env_episodes = env_spec["episodes"]
+
+    def run(self):
+        for i in range(self.env_episodes):
+            self.on_episode_start()  # Call start of episode callback
+
+            t = False
+            s = self.env.reset()
+            self.observe(s, 0, t)  # Initial State observation
+            steps = 0
+            while not t:
+
+                a = self.act()
+                s1, r, t, _ = self.env.step(a.item())
+                steps += 1
+
+
+            self.train()
+            self.log_scalar("accumulative_reward", steps, i)  # Log cummulative reward
+            self.on_episode_end()  # Call end of episode callback
+
+
+class Logger:
+
+    def __init__(self, spec):
+        self.log_dir = spec["summary"]["destination"]
+        self.add_on_episode_start(self.open)
+        self.add_on_episode_end(self.close)
+        self.log_subjects = spec["summary"]["models"]
+        self.flush_interval = spec["summary"]["save_interval"]
+        self.next_flush = time.time() + self.flush_interval
+
+        self._histogram = []
+        self._scalars = []
+
+    def open(self):
+       pass
+    def log_scalar(self, log_name, val, step):
+        if log_name in self.log_subjects:
+            self._scalars.append(('data/' + log_name, val, step))
+            # 'data/' + log_name, val, step
+
+    def log_histogram(self, log_name, lst, step):
+        if log_name in self.log_subjects:
+            self._histogram.append((log_name, lst, step))
+            #self.summary_writer.add_histogram(log_name, lst, step)
+
+    def close(self):
+        if time.time() > self.next_flush:
+            self.summary_writer = SummaryWriter("runs/test")
+
+            #for log_name, lst, step in self._histogram:
+            #    self.summary_writer.add_histogram(log_name, lst, step)
+            for log_name, val , step, in self._scalars:
+                self.summary_writer.add_scalar(log_name, val, step)
+
+            self._scalars = []
+            self._histogram = []
+            self.summary_writer.close()
+            self.next_flush += self.flush_interval
+
+class Callbacks:
+
+    def __init__(self):
+        self._on_episode_end = []
+        self._on_episode_start = []
+
+    def add_on_episode_start(self, fn):
+        self._on_episode_start.append(fn)
+
+    def add_on_episode_end(self, fn):
+        self._on_episode_end.append(fn)
+
+    def on_episode_start(self):
+        for fn in self._on_episode_start:
+            fn()
+
+    def on_episode_end(self):
+        for fn in self._on_episode_end:
+            fn()
+
+
+class DQN(Agent, Model, Memory, Environment, Logger, Callbacks):
 
     def __init__(self, spec):
         Model.__init__(self, spec)
         Memory.__init__(self, spec)
         Agent.__init__(self, spec)
+        Environment.__init__(self, spec)
+        Callbacks.__init__(self)
+        Logger.__init__(self, spec)
 
     def _train(self, batches):
 
@@ -108,7 +209,7 @@ class DQN(Agent, Model, Memory):
 
         # Compute Huber loss
         loss = F.smooth_l1_loss(s_values, expected_state_action_values.unsqueeze(1))
-
+        self.log_scalar("loss", loss, self.optimization_iterator)
 
         # Optimize the model
         self.optimizer.zero_grad()
@@ -116,6 +217,8 @@ class DQN(Agent, Model, Memory):
         for param in self.parameters():
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
+
+
 
 #target = r + 0.99 * torch.a
 
@@ -138,12 +241,12 @@ if __name__ == "__main__":
         memory=dict(
             model=memory.experience_replay,
             capacity=10000,
-            batch=512
+            batch=128
         ),
         optimizer=dict(
-            model=torch.optim.RMSprop,
+            model=torch.optim.Adam,
             options=dict(
-                lr=0.0001
+                lr=0.0000001
             )
         ),
         sampling=dict(
@@ -154,25 +257,25 @@ if __name__ == "__main__":
                 end=0.01,
                 steps=10000
             )
+        ),
+        environment=dict(
+            model=env,
+            episodes=100000,
+        ),
+        summary=dict(
+            destination="./board/",
+            save_interval=60,
+            frequency=4,  # Frequency at which the log writes a record (n steps)
+            models=[
+                'accumulative_reward',
+                'action_distribution',
+                'loss'
+            ]
         )
+
     ))
 
-    EPISODES = 40000
-    for i in range(EPISODES):
-        t = False
-        s = env.reset()
-        agent.observe(s, 0, t)  # Initial State observation
-        steps = 0
-        while not t:
-
-            a = agent.act()
-            s1, r, t, _ = env.step(a.item())
-
-            agent.train()
-            steps += 1
-
-        print(steps)
-
+    agent.run()
 
 
 #print(agent.model.forward(np.zeros((80, 80, 3))))

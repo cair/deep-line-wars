@@ -23,14 +23,14 @@ class CNN:
 class MLP:
 
     def build(self):
-        self.fc1 = nn.Linear(np.prod(self.input_shape), 20)
-        self.fc2 = nn.Linear(20, 20)
-        #self.fc3 = nn.Linear(32, 64)
-        self.fc4 = nn.Linear(20, np.prod(self.output_shape))
+        self.fc1 = nn.Linear(np.prod(self.input_shape), 24)
+        self.fc2 = nn.Linear(24, 24)
+        self.fc3 = nn.Linear(24, 24)
+        self.fc4 = nn.Linear(24, np.prod(self.output_shape))
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        #x = F.relu(self.fc3(x))
+        x = F.relu(self.fc3(x))
         x = self.fc4(x)
         return x#.view(x.size(0), -1)
