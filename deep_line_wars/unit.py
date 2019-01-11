@@ -42,6 +42,10 @@ class Unit:
         # Draw outline with correct color
         cv2.rectangle(self.icon_image, (0, 0), (32, 32), (255, 255, 255), 3)
 
+        # Flip other player
+        if self.player.direction == 1:
+            self.icon_image = cv2.flip(self.icon_image, 0)
+
         self.tick_speed = self.player.game.ticks_per_second / self.speed
         self.tick_counter = self.tick_speed
 

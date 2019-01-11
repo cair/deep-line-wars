@@ -30,7 +30,6 @@ class Game:
 
         self.config = dict_to_object(self.config)
 
-
         self.width = self.config.game.width
         self.height = self.config.game.height
 

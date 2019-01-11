@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 class GUI:
 
     def __init__(self, game):
@@ -13,7 +14,6 @@ class GUI:
         }
         self.tile_size = 32
 
-
         self.config_draw_friendly = self.game.config.gui_draw_friendly
         self.canvas = np.zeros((
             self.game.width * self.tile_size,
@@ -22,7 +22,8 @@ class GUI:
         ), dtype=np.uint8)
 
     def caption(self):
-        print("%s - DeepLineWars v1.0 [%sfps|%sups]" % (self.game.id, self.game.frame_counter, self.game.update_counter))
+        print(
+            "%s - DeepLineWars v1.0 [%sfps|%sups]" % (self.game.id, self.game.frame_counter, self.game.update_counter))
 
     def event(self):
         pass
@@ -37,27 +38,25 @@ class GUI:
         if ignore:
             return False
 
-
         # DRAW background
         for player in self.game.players:
             health_percent = 1 - max(0, player.health / self.game.config.mechanics.start_health)
             color = self.get_health_color(health_percent)
 
             self.canvas[
-                player.territory[0]:player.territory[0]+player.territory[2],
-                player.territory[1]:player.territory[1]+player.territory[3]] = color
+            player.territory[0]:player.territory[0] + player.territory[2],
+            player.territory[1]:player.territory[1] + player.territory[3]] = color
 
             self.canvas[
-                player.spawn_x*self.tile_size:(player.spawn_x*self.tile_size)+self.tile_size,
-                0:self.game.height*self.tile_size] = self.tile_colors[1]
+            player.spawn_x * self.tile_size:(player.spawn_x * self.tile_size) + self.tile_size,
+            0:self.game.height * self.tile_size] = self.tile_colors[1]
 
         for center in self.game.center_area:
             c = center * self.tile_size
 
             self.canvas[
-            c:c+self.tile_size,
-            0:self.game.height*self.tile_size] = self.tile_colors[2]
-
+            c:c + self.tile_size,
+            0:self.game.height * self.tile_size] = self.tile_colors[2]
 
         # Draw Units
         for player in self.game.players:
@@ -71,8 +70,8 @@ class GUI:
                 y = int((unit.y * 32))
 
                 self.canvas[
-                x:x+self.tile_size,
-                y:y+self.tile_size] = unit.icon_image
+                x:x + self.tile_size,
+                y:y + self.tile_size] = unit.icon_image
 
         # Draw Buildings
         for player in self.game.players:
@@ -80,8 +79,8 @@ class GUI:
                 x = int(building.x * self.tile_size)
                 y = int(building.y * self.tile_size)
                 self.canvas[
-                x:x+self.tile_size,
-                y:y+self.tile_size] = building.icon_image
+                x:x + self.tile_size,
+                y:y + self.tile_size] = building.icon_image
 
         # Player cursors
         for player in self.game.players:
@@ -89,9 +88,8 @@ class GUI:
             y = player.virtual_cursor_y * self.tile_size
 
             self.canvas[
-            x:x+self.tile_size,
-            y:y+self.tile_size] = player.cursor_colors  # cursor = np.tile(player.cursor_colors, (32, 32, 1))
-
+            x:x + self.tile_size,
+            y:y + self.tile_size] = player.cursor_colors  # cursor = np.tile(player.cursor_colors, (32, 32, 1))
 
     def quit(self):
         pass
