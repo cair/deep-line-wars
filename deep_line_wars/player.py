@@ -1,8 +1,6 @@
-import json
-import copy
-import random
+
 import numpy as np
-from os.path import realpath, dirname, join
+from os.path import realpath, dirname
 
 from deep_line_wars import action_space
 
@@ -30,7 +28,10 @@ class AgentList:
 
 class Player:
 
-    def __init__(self, player_id, game, action_space=action_space.StandardActionSpace):
+    def __init__(self,
+                 game,
+                 player_id,
+                 action_space=action_space.StandardActionSpace):
         # Game Reference
         self.game = game
 

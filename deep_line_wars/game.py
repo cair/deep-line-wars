@@ -2,6 +2,8 @@ import uuid
 import numpy as np
 
 from os.path import realpath, dirname, join
+
+from shop import Shop
 from .building import Building
 from .player import Player
 from .unit import Unit
@@ -12,8 +14,13 @@ dir_path = dirname(realpath(__file__))
 
 class Game:
 
-    def __init__(self, config=None, unit_config=conf.unit, building_config=conf.building, levelup_config=conf.level_up):
-        # Create
+    def __init__(self,
+                 config=None,
+                 unit_config=conf.unit,
+                 building_config=conf.building,
+                 levelup_config=conf.level_up
+                 ):
+        # Game ID
         self.id = uuid.uuid4()
 
         # Load configuration
@@ -30,21 +37,13 @@ class Game:
 
         self.config = dict_to_object(self.config)
 
-
         self.width = self.config.game.width
         self.height = self.config.game.height
 
         self.ticks = 0
         self.running = False
 
-        # Z = 0 - Environmental Layer
-        # Z = 1 - Unit Layer
-        # Z = 2 - Unit Player Layer
-        # Z = 3 - Building Layer
-        # Z = 4 - Building Player Layer
-        self.map = np.zeros((5, self.width, self.height), dtype=np.uint8)
-        self.center_area = None
-        self.setup_environment()
+        #self.setup_environment()
 
         self.winner = None
 
@@ -56,18 +55,20 @@ class Game:
         self.selected_player = p1
 
         self.gui = self.config.gui(self)
-        self.unit_shop = [Unit(data) for data in self.unit_data]
-        self.building_shop = [Building(data) for data in self.building_data]
 
         self.ticks_per_second = self.config.mechanics.ticks_per_second
+
+        self.shop = Shop(self)
 
     def is_terminal(self):
         return True if self.winner else False
 
     def step(self, action):
+
+        pass
         
         # Perform Action
-        self.selected_player.action_space.perform(action)
+        """self.selected_player.action_space.perform(action)
 
         # Update state
         self.update()
@@ -80,26 +81,7 @@ class Game:
             reward = -1 if self.winner != self.selected_player else 1
         else:
             reward = -1 if self.selected_player.health < self.selected_player.opponent.health else 0.001
-        return self.get_state(), reward, terminal, {}
-
-    def setup_environment(self):
-        env_map = self.map[0]
-        edges = [0, env_map.shape[0] - 1]
-
-        # Set edges to "goal type"
-        for edge in edges:
-            for i in range(env_map[edge].shape[0]):
-                env_map[edge][i] = 1
-
-        # Set mid to "mid type"
-        center = env_map.shape[0] / 2
-        center_area = [int(center), int(center - 1)] if center.is_integer() else [int(center)]
-
-        for center_item in center_area:
-            for i in range(env_map[center_item].shape[0]):
-                env_map[center_item][i] = 2
-
-        self.center_area = center_area
+        return self.get_state(), reward, terminal, {}"""
 
     def render_interval(self):
         return 1.0 / self.config.mechanics.fps if self.config.mechanics.fps > 0 else 0
@@ -117,11 +99,6 @@ class Game:
         return self.ticks / self.ticks_per_second
 
     def reset(self):
-        self.map[1].fill(0)
-        self.map[2].fill(0)
-        self.map[3].fill(0)
-        self.map[4].fill(0)
-
         for player in self.players:
             agent = player.agents.get()
             if agent:
@@ -134,21 +111,8 @@ class Game:
 
         return self.get_state()
 
-    def _get_raw_state(self):
-        return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
-
     def get_state(self):
-
-        if self.config.state_representation == "RAW":
-            return self._get_raw_state()
-        elif self.config.state_representation == "RGB":
-            self.render()
-            return self.gui.get_state(grayscale=False)
-        elif self.config.state_representation == "L":
-            self.render()
-            return self.gui.get_state(grayscale=True)
-        else:
-            raise NotImplementedError("representation must be RAW, RGB, or L")
+        pass
 
     def update(self):
 

@@ -3,11 +3,11 @@ import random
 import time
 
 from deep_line_wars.game import Game
-from deep_line_wars.gui import pygame, dummy, opencv
+from deep_line_wars.gui import pygame, dummy
 
 if __name__ == "__main__":
 
-    g = Game(dict(gui=opencv.GUI))
+    g = Game(dict(gui=pygame.GUI))
 
     s = time.time()
     for i in range(10):
