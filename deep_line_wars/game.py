@@ -1,148 +1,203 @@
-import uuid
+from deep_line_wars.config import default_config
 import numpy as np
-
-from os.path import realpath, dirname, join
-
-from shop import Shop
-from .building import Building
-from .player import Player
-from .unit import Unit
-from .utils import dict_to_object, update
-from deep_line_wars import config as conf
-dir_path = dirname(realpath(__file__))
+import pygame
 
 
 class Game:
 
-    def __init__(self,
-                 config=None,
-                 unit_config=conf.unit,
-                 building_config=conf.building,
-                 levelup_config=conf.level_up
-                 ):
-        # Game ID
-        self.id = uuid.uuid4()
+    def __init__(self, config: dict):
+        self.config = default_config.copy()
+        self.config.update(config)  # TODO is this deep update?
 
-        # Load configuration
-        self.unit_data = unit_config
-        self.building_data = building_config
-        self.player_levels = levelup_config
+        self.map = Map(self)
 
-        # Load Configuration
-        # Apply customizations
-        # Transform to Object
-        self.config = conf.default_config
-        if type(config) == dict:
-            update(self.config, config)
+        self.fps_interval = self.config["mechanics"]["fps"]
+        self.ups_interval = self.config["mechanics"]["ups"]
 
-        self.config = dict_to_object(self.config)
-
-        self.width = self.config.game.width
-        self.height = self.config.game.height
-
-        self.ticks = 0
-        self.running = False
-
-        #self.setup_environment()
-
-        self.winner = None
-
-        p1 = Player(1, self)
-        p2 = Player(2, self)
-        p1.opponent = p2
-        p2.opponent = p1
-        self.players = [p1, p2]
-        self.selected_player = p1
-
-        self.gui = self.config.gui(self)
-
-        self.ticks_per_second = self.config.mechanics.ticks_per_second
-
-        self.shop = Shop(self)
-
-    def is_terminal(self):
-        return True if self.winner else False
-
-    def step(self, action):
-
+    def update(self):
         pass
-        
-        # Perform Action
-        """self.selected_player.action_space.perform(action)
 
-        # Update state
-        self.update()
 
-        # Evaluate terminal state
-        terminal = self.is_terminal()
+class Graphics:
 
-        # Adjust reward according to terminal value
-        if terminal:
-            reward = -1 if self.winner != self.selected_player else 1
+    def __init__(self, game: Game):
+        self.game = game
+
+        self.g_width = self.game.map.width
+        self.g_height = self.game.map.height
+
+        self.tile_size = self.game.config["game"]["tile_size"]
+
+        self.canvas_shape = (
+            self.g_height * self.tile_size,
+            self.g_width * self.tile_size,
+        )
+
+        self.has_window = None
+
+        self.updates_cells = []
+        self.updates_rects = [] # TODO need this?
+
+        self.rectangles = []
+
+        for x in range(self.g_width):
+            for y in range(self.g_height):
+                self.rectangles.append(
+                    pygame.Rect(
+                        (x*self.tile_size, y*self.tile_size),
+                        (self.tile_size, self.tile_size)
+                    )
+                )
+
+        self.game.map.cb_on_cell_change.append(self.on_cell_change)
+
+        if self.has_window:
+            pygame.display.init()
+            self.canvas = pygame.display.set_mode(
+                (self.canvas_shape[1], self.canvas_shape[0]),
+                0 # TODO NOFRAME OPENGL, HWSURFACE? DOUBLEBUF?
+            )
         else:
-            reward = -1 if self.selected_player.health < self.selected_player.opponent.health else 0.001
-        return self.get_state(), reward, terminal, {}"""
+            self.canvas = pygame.Surface((self.canvas_shape[1], self.canvas_shape[0]))
 
-    def render_interval(self):
-        return 1.0 / self.config.mechanics.fps if self.config.mechanics.fps > 0 else 0
+        # TODO
+        self.sprites = {
+            Type.Ground: None,
+            Type.RedZone: None,
+            Type.Center: None
+        }
 
-    def update_interval(self):
-        return 1.0 / self.config.mechanics.ups if self.config.mechanics.ups > 0 else 0
+        self._init_canvas()
 
-    def stat_interval(self):
-        return 1.0 / self.config.mechanics.statps if self.config.mechanics.statps > 0 else 0
+    def _init_canvas(self):
+        """Construct grid."""
 
-    def set_running(self, value):
-        self.running = value
+        for cell in self.game.map.data:
+            self.draw_sprite(cell)
 
-    def game_time(self):
-        return self.ticks / self.ticks_per_second
+        if self.has_window:
+            pygame.display.update()
 
-    def reset(self):
-        for player in self.players:
-            agent = player.agents.get()
-            if agent:
-                agent.reset()
-            player.reset()
-            player.agents.next()
+    def draw_sprite(self, cell):
+        sprite = self.sprites[cell.type]
+        self.canvas.blit(sprite, self.rectangles[cell.i])
 
-        self.winner = None
-        self.ticks = 0
-
-        return self.get_state()
-
-    def get_state(self):
+    def on_cell_change(self):
         pass
 
     def update(self):
+        pass
 
-        if self.winner:
-            return
 
-        self.ticks += 1
+class Type:
 
-        for player in self.players:
-            player.update()
+    Ground = dict(
+        color=(0, 255, 0)
+    )
 
-            if player.health <= 0:
-                self.winner = player.opponent
-                break
+    Center = dict(
+        color=(0, 0, 255)
+    )
 
-    def render(self):
-        self.gui.event()
-        self.gui.draw()
+    RedZone = dict(
+        color=(255, 0, 0)
+    )
 
-    def render_window(self):
-        self.gui.draw_screen()
 
-    def quit(self):
-        self.gui.quit()
+class Map:
 
-    def caption(self):
-        self.gui.caption()
+    def __init__(self, game: Game):
+        self.game = game
+        self.width = self.game.config["game"]["width"]
+        self.height = self.game.config["game"]["height"]
 
-    def flip_player(self):
-        self.selected_player = self.selected_player.opponent
+        self.cb_on_cell_change = []
 
-    def get_action_space(self):
-        return self.selected_player.action_space.size
+        self.data = np.empty(shape=(self.height * self.width, ), dtype=Cell)
+        self.setup()
+
+    def setup(self):
+        """Compute center area."""
+        center = self.width / 2
+        center_area = [int(center), int(center - 1)] if center.is_integer() else [int(center)]
+
+        """Construct center area."""
+        for y in center_area:
+            for x in range(self.width):
+                self._set_cell(x, y, Cell(self, x=y, y=y, type=Type.Center))
+
+        """Compute edges"""
+        p_0_base = list(range(0, self.width))[0:self.game.config["game"]["base_size"]]
+        p_1_base = list(range(0, self.width))[-self.game.config["game"]["base_size"]:]
+
+        """Construct edges. (Red Zone)."""
+        for y in p_0_base + p_1_base:
+                for x in range(self.width):
+                    self._set_cell(x, y, Cell(self, x=x, y=y, type=Type.RedZone))
+
+        """Construct remaining cells to normal ground."""
+        normal_type = set(range(0, self.width)) - set(p_0_base + p_1_base + center_area)
+        for y in normal_type:
+            for x in range(self.width):
+                self._set_cell(x, y, Cell(self, x=x, y=y, type=Type.Ground))
+
+    def _set_cell(self, x, y, val):
+        self.data[x * self.height + y] = val
+
+    def cell(self, x, y):
+        return self.data[y, x]
+
+    def update(self):
+        pass
+
+
+class Cell:
+
+    def __init__(self, map: Map, x: int, y: int, type: dict):
+        self.map = map
+        self.x = x
+        self.y = y
+        self.i = self.x * self.map.height + self.y
+        self.type = type
+
+        self.occupants = []
+
+    def has_occupants(self):
+        return len(self.occupants) > 0
+
+
+class Player:
+
+    def __init__(self, game: Game):
+        self.game = game
+
+        self.units = []
+
+    def update(self):
+
+        for unit in self.units:
+            unit.update()
+
+
+class Unit:
+
+    def __init__(self, spec):
+        pass
+
+    def update(self):
+        pass
+
+
+class Shop:
+
+    def __init__(self, player: Player):
+        self.player = player
+
+    def purchase(self, unit: Unit):
+        pass
+
+
+if __name__ == "__main__":
+
+    g = Game(config=dict())
+    g.update()

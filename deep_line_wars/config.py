@@ -1,11 +1,9 @@
-from deep_line_wars.gui import dummy
-
 default_config = dict(
     game=dict(
         width=11,
         height=11,
-        tile_width=32,
-        tile_height=32
+        tile_size=32,
+        base_size=1,
     ),
     mechanics=dict(
         complexity=dict(
@@ -22,7 +20,7 @@ default_config = dict(
         income_ratio=0.20,
         kill_gold_ratio=0.10
     ),
-    gui=dummy.GUI,
+    gui=None,
     gui_draw_friendly=True,
     state_representation="RGB"  # RAW, RGB, L
 )
