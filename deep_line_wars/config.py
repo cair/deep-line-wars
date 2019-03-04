@@ -1,7 +1,7 @@
 default_config = dict(
     game=dict(
-        width=11,
-        height=11,
+        width=18,
+        height=18,
         tile_size=32,
         base_size=1,
     ),
@@ -20,8 +20,11 @@ default_config = dict(
         income_ratio=0.20,
         kill_gold_ratio=0.10
     ),
-    gui=None,
-    gui_draw_friendly=True,
+    gui=dict(
+        enabled=True,
+        window=True,
+        draw_friendly=True
+    ),
     state_representation="RGB"  # RAW, RGB, L
 )
 
