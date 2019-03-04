@@ -189,7 +189,6 @@ class Player:
             if unit.despawn:
                 unit.remove()
                 self.units.remove(unit)
-
             else:
                 unit.move()
 

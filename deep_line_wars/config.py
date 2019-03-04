@@ -30,115 +30,126 @@ default_config = dict(
 
 building = [
     dict(
-        id=1,
+        id=1000,
+        type=1,
         name="Basic-Tower",
         icon="tower_1.png",
         health=100,
+        armor=2,
         attack_min=2,
         attack_max=4,
         attack_pen=2,
         attack_speed=3,
         attack_range=3,
+        speed=0,
+        stationary=True,
         level=0,
-        gold_cost=10
+        gold_cost=10,
+        lumber_cost=0
 
     ),
     dict(
-        id=2,
+        id=1001,
+        type=1,
         name="Fast-Tower",
         icon="tower_2.png",
         health=100,
+        armor=3,
         attack_min=2,
         attack_max=4,
         attack_pen=2,
         attack_speed=4,
         attack_range=3,
         level=0,
-        gold_cost=20
+        gold_cost=20,
+        lumber_cost=0
     ),
     dict(
-        id=3,
+        id=1002,
+        type=1,
         name="Faster-Tower",
         icon="lazer_tower.png",
         health=100,
+        armor=4,
         attack_min=4,
         attack_max=6,
         attack_pen=3,
         attack_speed=5,
         attack_range=3,
-        level=1,
-        gold_cost=30
-    )
-]
-
-level_up = [
-    [100, 0],
-    [1000, 0],
-    [10000, 0],
-    [100000, 1]
-]
-
-unit_type = [
-    dict(
-        id=0,
-        name="Ground",
-        collision=True
+        level=0,
+        gold_cost=30,
+        lumber_cost=0
     ),
     dict(
-        id=1,
-        name="Flying",
-        collision=False
-    )
-]
-
-unit = [
-    dict(
+        id=2000,
+        type=0,
         name="Militia",
         icon="militia.png",
         health=40,
-        armor=2,
+        armor=1,
+        attack_min=1,
+        attack_max=1,
+        attack_pen=1,
+        attack_speed=1,
+        attack_range=1,
         speed=1,
-        type=0,
+        stationary=False,
         level=0,
-        gold_drop=1,
-        gold_cost=10
+        gold_cost=10,
+        lumber_cost=0
     ),
     dict(
+        id=2001,
+        type=0,
         name="Footman",
         icon="footman.png",
         health=80,
         armor=4,
+        attack_min=1,
+        attack_max=1,
+        attack_pen=1,
+        attack_speed=1,
+        attack_range=1,
         speed=1,
-        type=0,
+        stationary=False,
         level=0,
-        gold_drop=1,
-        gold_cost=20
+        gold_cost=20,
+        lumber_cost=0
     ),
     dict(
+        id=2002,
+        type=0,
         name="Grunt",
         icon="grunt.png",
         health=140,
         armor=4,
+        attack_min=1,
+        attack_max=1,
+        attack_pen=1,
+        attack_speed=1,
+        attack_range=1,
         speed=1,
-        type=0,
+        stationary=False,
         level=0,
-        gold_drop=1,
-        gold_cost=40
+        gold_cost=40,
+        lumber_cost=0
     ),
     dict(
+        id=2003,
+        type=0,
         name="Armored Grunt",
         icon="armored_grunt.png",
         health=190,
         armor=6,
+        attack_min=1,
+        attack_max=1,
+        attack_pen=1,
+        attack_speed=1,
+        attack_range=1,
         speed=1.2,
-        type=0,
+        stationary=False,
         level=0,
-        gold_drop=1,
-        gold_cost=100
+        gold_cost=100,
+        lumber_cost=0
     )
-
-]
-
-upgrades = [
-    dict()
 ]
