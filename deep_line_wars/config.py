@@ -1,5 +1,4 @@
-from deep_line_wars.gui import dummy
-
+from .gui import dummy, pygame
 default_config = dict(
     game=dict(
         width=11,
@@ -22,7 +21,8 @@ default_config = dict(
         income_ratio=0.20,
         kill_gold_ratio=0.10
     ),
-    gui=dummy.GUI,
+    gui=pygame.GUI,
+    gui_window=True,
     gui_draw_friendly=True,
     state_representation="RGB"  # RAW, RGB, L
 )

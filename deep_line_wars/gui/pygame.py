@@ -315,6 +315,7 @@ class GUI:
         image = np.array(pygame.surfarray.pixels3d(self.surface_game))
         if grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            image = np.reshape(image, image.shape + (1, ))
         return image
 
     def player(self):

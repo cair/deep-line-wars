@@ -7,6 +7,10 @@ class BaseActionSpace:
         self.size = None
         self.actions = []
 
+    @property
+    def shape(self):
+        return self.size,
+
     def perform(self, a):
         if a < 0 or a >= self.size:
             raise ValueError("Out of bounds action %s when size of the action-space is %s" % (a, self.size))
