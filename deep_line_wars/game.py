@@ -6,7 +6,7 @@ from .building import Building
 from .player import Player
 from .unit import Unit
 from .utils import dict_to_object, update
-from deep_line_wars import config as conf
+from . import config as conf
 dir_path = dirname(realpath(__file__))
 
 
@@ -60,6 +60,17 @@ class Game:
         self.building_shop = [Building(data) for data in self.building_data]
 
         self.ticks_per_second = self.config.mechanics.ticks_per_second
+
+    @property
+    def observation_space(self):
+        if self.config.state_representation == "RAW":
+            return self.get_state().flatten()
+        elif self.config.state_representation in ["L", "RGB"]:
+            return self.get_state()
+
+    @property
+    def action_space(self):
+        return self.selected_player.action_space
 
     def is_terminal(self):
         return True if self.winner else False
@@ -143,6 +154,7 @@ class Game:
     def get_state(self):
 
         if self.config.state_representation == "RAW":
+<<<<<<< HEAD
             return self._get_raw_state(flip=self.flipped)
         elif self.config.state_representation == "RGB":
             self.render()
@@ -150,6 +162,19 @@ class Game:
         elif self.config.state_representation == "L":
             self.render()
             return self.gui.get_state(grayscale=True, flip=self.flipped)
+=======
+            return self._get_raw_state().flatten()
+        elif self.config.state_representation == "RGB":
+            self.render()
+            if self.config.gui_window:
+                self.render_window()
+            return self.gui.get_state(grayscale=False)
+        elif self.config.state_representation == "L":
+            self.render()
+            if self.config.gui_window:
+                self.render_window()
+            return self.gui.get_state(grayscale=True)
+>>>>>>> 9d5ee15232871a2454309199b021ff1df434bab0
         else:
             raise NotImplementedError("representation must be RAW, RGB, or L")
 
@@ -184,5 +209,3 @@ class Game:
         self.selected_player = self.selected_player.opponent
         self.flipped = not self.flipped
 
-    def get_action_space(self):
-        return self.selected_player.action_space.size

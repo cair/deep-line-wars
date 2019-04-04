@@ -316,10 +316,14 @@ class GUI:
 
         if grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+<<<<<<< HEAD
 
         if flip:
             image = cv2.flip(image, 0)
 
+=======
+            image = np.reshape(image, image.shape + (1, ))
+>>>>>>> 9d5ee15232871a2454309199b021ff1df434bab0
         return image
 
     def player(self):

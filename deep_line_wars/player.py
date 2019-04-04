@@ -4,7 +4,7 @@ import random
 import numpy as np
 from os.path import realpath, dirname, join
 
-from deep_line_wars import action_space
+from . import action_space
 
 dir_path = dirname(realpath(__file__))
 
