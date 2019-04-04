@@ -1,4 +1,4 @@
-import torch
+import torch as torch
 import numpy as np
 
 class ExperienceReplay(object):
@@ -8,6 +8,7 @@ class ExperienceReplay(object):
         self.memory_capacity = spec["memory"]["capacity"]
         self.memory_size = 0
         self._memory_pointer = 0
+
 
         self.memory_state = torch.empty((self.memory_capacity, ) + (4, ), dtype=torch.float)  # from spec
         self.memory_state1 = torch.empty((self.memory_capacity, ) + (4, ),  dtype=torch.float)  # from spec

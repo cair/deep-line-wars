@@ -19,11 +19,20 @@ if __name__ == "__main__":
             g.step(a1)
             g.flip_player()
 
+            g.render()
+            g.render_window()
+
             a2 = random.randint(0, g.get_action_space()-1)
             g.step(a2)
             g.flip_player()
 
             g.render()
+            g.render_window()
+
+
+
+
+
 
 
     print("Time: %s" % (time.time() - s))

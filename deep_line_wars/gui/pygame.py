@@ -311,10 +311,15 @@ class GUI:
 
         self.i = 0
 
-    def get_state(self, grayscale=False):
+    def get_state(self, grayscale=False, flip=False):
         image = np.array(pygame.surfarray.pixels3d(self.surface_game))
+
         if grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+
+        if flip:
+            image = cv2.flip(image, 0)
+
         return image
 
     def player(self):

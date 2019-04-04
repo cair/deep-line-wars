@@ -2,3 +2,6 @@ pygame
 numpy
 gym
 opencv-python
+ray
+setproctitle
+psutil

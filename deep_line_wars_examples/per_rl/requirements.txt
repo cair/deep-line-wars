@@ -1,2 +1,9 @@
 git+https://github.com/pytorch/vision.git
 git+https://github.com/szagoruyko/pytorchviz.git
+tensorflow
+tensorboard
+torch
+torchvision
+tensorboardX
+gym
+tensorforce

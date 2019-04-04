@@ -94,10 +94,13 @@ class GUI:
     def quit(self):
         pass
 
-    def get_state(self, grayscale=False):
+    def get_state(self, grayscale=False, flip=False):
         image = np.array(self.canvas)
         if grayscale:
-            return cv2.cvtColor(self.canvas, cv2.COLOR_BGR2GRAY)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        if flip:
+            image = cv2.flip(image, 1)
 
         return image
 

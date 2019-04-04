@@ -53,6 +53,7 @@ class Game:
         p2.opponent = p1
         self.players = [p1, p2]
         self.selected_player = p1
+        self.flipped = False # Wether the state is flipped or not
 
         self.gui = self.config.gui(self)
         self.unit_shop = [Unit(data) for data in self.unit_data]
@@ -133,19 +134,22 @@ class Game:
 
         return self.get_state()
 
-    def _get_raw_state(self):
-        return np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
+    def _get_raw_state(self, flip=False):
+        state = np.reshape(self.map, (self.map.shape[2], self.map.shape[1], self.map.shape[0]))
+        if flip:
+            state = np.fliplr(state)
+        return state
 
     def get_state(self):
 
         if self.config.state_representation == "RAW":
-            return self._get_raw_state()
+            return self._get_raw_state(flip=self.flipped)
         elif self.config.state_representation == "RGB":
             self.render()
-            return self.gui.get_state(grayscale=False)
+            return self.gui.get_state(grayscale=False, flip=self.flipped)
         elif self.config.state_representation == "L":
             self.render()
-            return self.gui.get_state(grayscale=True)
+            return self.gui.get_state(grayscale=True, flip=self.flipped)
         else:
             raise NotImplementedError("representation must be RAW, RGB, or L")
 
@@ -178,6 +182,7 @@ class Game:
 
     def flip_player(self):
         self.selected_player = self.selected_player.opponent
+        self.flipped = not self.flipped
 
     def get_action_space(self):
         return self.selected_player.action_space.size
