@@ -15,7 +15,7 @@ class GUI:
     def quit(self):
         pass
 
-    def get_state(self, grayscale=False):
+    def get_state(self, grayscale=False, flip=False):
         return self.game._get_raw_state()
 
     def draw_screen(self):

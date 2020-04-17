@@ -1,141 +1,102 @@
-from .gui import dummy, pygame
-default_config = dict(
-    game=dict(
-        width=11,
-        height=11,
-        tile_width=32,
-        tile_height=32
-    ),
-    mechanics=dict(
-        complexity=dict(
-            build_anywhere=False
-        ),
-        start_health=50,
-        start_gold=50,
-        start_lumber=0,
-        start_income=20,
-        income_frequency=10,
-        ticks_per_second=10,
-        fps=10,
-        ups=10008000,
-        income_ratio=0.20,
-        kill_gold_ratio=0.10
-    ),
-    gui=pygame.GUI,
-    gui_window=True,
-    gui_draw_friendly=True,
-    state_representation="RGB"  # RAW, RGB, L
-)
+from deep_line_wars.gui import dummy, pygame
 
-building = [
-    dict(
-        id=1,
-        name="Basic-Tower",
-        icon="tower_1.png",
-        health=100,
-        attack_min=2,
-        attack_max=4,
-        attack_pen=2,
-        attack_speed=3,
-        attack_range=3,
-        level=0,
-        gold_cost=10
 
-    ),
-    dict(
-        id=2,
-        name="Fast-Tower",
-        icon="tower_2.png",
-        health=100,
-        attack_min=2,
-        attack_max=4,
-        attack_pen=2,
-        attack_speed=4,
-        attack_range=3,
-        level=0,
-        gold_cost=20
-    ),
-    dict(
-        id=3,
-        name="Faster-Tower",
-        icon="lazer_tower.png",
-        health=100,
-        attack_min=4,
-        attack_max=6,
-        attack_pen=3,
-        attack_speed=5,
-        attack_range=3,
-        level=1,
-        gold_cost=30
-    )
-]
+class Config:
+
+    class Map:
+        def __init__(
+                self,
+                spawn_area_size=1,
+                mid_area_size=1
+        ):
+            self.spawn_area_size = spawn_area_size
+            self.mid_area_size = mid_area_size
+
+    class Mechanics:
+        def __init__(self,
+                     build_anywhere: bool = True,
+                     start_health: int = 50,
+                     start_gold: int = 50,
+                     start_lumber: int = 0,
+                     start_income: int = 20,
+                     income_frequency: int = 10,
+                     ticks_per_second: int = 10,
+                     fps: int = 10,
+                     ups: int = 10008000,
+                     income_ratio: int = 0.20,
+                     kill_gold_ratio: int = 0.10,
+                     enemy_territory_decay=.10,
+                     friendly_territory_decay=.0001
+                     ):
+            self.build_anywhere = build_anywhere
+            self.start_health = start_health
+            self.start_gold = start_gold
+            self.start_lumber = start_lumber
+            self.start_income = start_income
+            self.income_frequency = income_frequency
+            self.ticks_per_second = ticks_per_second
+            self.fps = fps
+            self.ups = ups
+            self.income_ratio = income_ratio
+            self.kill_gold_ratio = kill_gold_ratio
+            self.enemy_territory_decay = enemy_territory_decay
+            self.friendly_territory_decay = friendly_territory_decay
+
+    class Game:
+        def __init__(self,
+                     width: int = None,
+                     height: int = None,
+                     tile_width=32,
+                     tile_height=32
+                     ):
+            self.width = width
+            self.height = height
+            self.tile_width = tile_width
+            self.tile_height = tile_height
+
+    class GUI:
+
+        def __init__(self,
+                     engine=pygame.GUI,
+                     draw_friendly: bool = True,
+                     state_representation="RGB"  # RAW, RGB, L
+                     ):
+            self.engine = engine
+            self.draw_friendly = draw_friendly
+            self.state_representation = state_representation
+
+    def __init__(self,
+                 game: 'Game' = Game(),
+                 mechanics: 'Mechanics' = Mechanics(),
+                 gui: 'GUI' = GUI(),
+                 map: 'Map' = Map()
+                 ):
+
+        self.game: 'Game' = game
+        self.mechanics: 'Mechanics' = mechanics
+        self.gui: 'GUI' = gui
+        self.map: 'Map' = map
+        self.width = None
+        self.height = None
+        self._size_is_set = False
+
+    def set_size(self, w, h):
+        self._size_is_set = True
+        self.width = w
+        self.height = h
+
+    def validate(self):
+        assert self._size_is_set, "Size must be set with the set_size function"
+
+
+
+
 
 level_up = [
     [100, 0],
     [1000, 0],
     [10000, 0],
     [100000, 1]
-]
-
-unit_type = [
-    dict(
-        id=0,
-        name="Ground",
-        collision=True
-    ),
-    dict(
-        id=1,
-        name="Flying",
-        collision=False
-    )
-]
-
-unit = [
-    dict(
-        name="Militia",
-        icon="militia.png",
-        health=40,
-        armor=2,
-        speed=1,
-        type=0,
-        level=0,
-        gold_drop=1,
-        gold_cost=10
-    ),
-    dict(
-        name="Footman",
-        icon="footman.png",
-        health=80,
-        armor=4,
-        speed=1,
-        type=0,
-        level=0,
-        gold_drop=1,
-        gold_cost=20
-    ),
-    dict(
-        name="Grunt",
-        icon="grunt.png",
-        health=140,
-        armor=4,
-        speed=1,
-        type=0,
-        level=0,
-        gold_drop=1,
-        gold_cost=40
-    ),
-    dict(
-        name="Armored Grunt",
-        icon="armored_grunt.png",
-        health=190,
-        armor=6,
-        speed=1.2,
-        type=0,
-        level=0,
-        gold_drop=1,
-        gold_cost=100
-    )
-
 ]
 
 upgrades = [

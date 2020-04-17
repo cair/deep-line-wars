@@ -1,19 +1,20 @@
+from __future__ import annotations
+
+from deep_line_wars import entity
+from deep_line_wars.shop import Shop
 
 
 class BaseActionSpace:
 
-    def __init__(self, game):
-        self.game = game
+    def __init__(self, game: 'Game'):
+        self.game: 'Game' = game
         self.size = None
         self.actions = []
-
-    @property
-    def shape(self):
-        return self.size,
 
     def perform(self, a):
         if a < 0 or a >= self.size:
             raise ValueError("Out of bounds action %s when size of the action-space is %s" % (a, self.size))
+
         self.actions[a]()
 
     def build(self):
@@ -25,7 +26,7 @@ class BaseActionSpace:
 
 class StandardActionSpace(BaseActionSpace):
 
-    def __init__(self, game):
+    def __init__(self, game: 'Game'):
         super().__init__(game)
 
         self.build()
@@ -43,36 +44,72 @@ class StandardActionSpace(BaseActionSpace):
         self.game.selected_player.set_cursor(0, 1)
 
     def send_militia(self):
-        self.game.selected_player.spawn((0, self.game.unit_shop[0]))
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.MILITIA,
+            entity.Ground
+        ).spawn(
+            player=self.game.selected_player
+        )
 
     def send_footman(self):
-        self.game.selected_player.spawn((1, self.game.unit_shop[1]))
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.FOOTMAN,
+            entity.Ground
+        ).spawn(
+            player=self.game.selected_player
+        )
 
     def send_grunt(self):
-        self.game.selected_player.spawn((2, self.game.unit_shop[2]))
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.GRUNT,
+            entity.Ground
+        ).spawn(
+            player=self.game.selected_player
+        )
 
     def send_armored_grunt(self):
-        self.game.selected_player.spawn((3, self.game.unit_shop[3]))
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.ARMORED_GRUNT,
+            entity.Ground
+        ).spawn(
+            player=self.game.selected_player
+        )
 
     def build_basic_tower(self):
-        self.game.selected_player.build(
-            self.game.selected_player.virtual_cursor_x,
-            self.game.selected_player.virtual_cursor_y,
-            self.game.building_shop[0]
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.BASIC_TOWER,
+            entity.Building
+        ).spawn(
+            player=self.game.selected_player,
+            x=self.game.selected_player.virtual_cursor_x,
+            y=self.game.selected_player.virtual_cursor_y
         )
 
     def build_fast_tower(self):
-        self.game.selected_player.build(
-            self.game.selected_player.virtual_cursor_x,
-            self.game.selected_player.virtual_cursor_y,
-            self.game.building_shop[1]
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.FAST_TOWER,
+            entity.Building
+        ).spawn(
+            player=self.game.selected_player,
+            x=self.game.selected_player.virtual_cursor_x,
+            y=self.game.selected_player.virtual_cursor_y
         )
 
     def build_faster_tower(self):
-        self.game.selected_player.build(
-            self.game.selected_player.virtual_cursor_x,
-            self.game.selected_player.virtual_cursor_y,
-            self.game.building_shop[2]
+        self.game.shop.buy(
+            self.game.selected_player,
+            Shop.FASTER_TOWER,
+            entity.Building
+        ).spawn(
+            player=self.game.selected_player,
+            x=self.game.selected_player.virtual_cursor_x,
+            y=self.game.selected_player.virtual_cursor_y
         )
 
     def no_action(self):

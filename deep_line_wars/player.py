@@ -1,10 +1,8 @@
-import json
 import copy
-import random
 import numpy as np
-from os.path import realpath, dirname, join
+from os.path import realpath, dirname
 
-from . import action_space
+from deep_line_wars import action_space
 
 dir_path = dirname(realpath(__file__))
 
@@ -53,21 +51,21 @@ class Player:
         self.direction = 1 if player_id == 1 else -1
 
         # Colors
-        self.player_color = (255, 0, 0) if player_id == 1 else (0, 0, 255)
+        self.color = (255, 0, 0) if player_id == 1 else (0, 0, 255)
         self.cursor_colors = (95, 252, 242) if player_id == 1 else (212, 247, 86)
 
         # Spawn position for player
-        self.spawn_x = 0 if player_id is 1 else self.game.width - 1
+        self.spawn_x = 0 if player_id == 1 else self.game.width - 1
 
         # Goal position for player
-        self.goal_x = self.game.width - 1 if player_id is 1 else 0
+        self.goal_x = self.game.width - 1 if player_id == 1 else 0
 
         # The calculated territory of the player, is a square
         self.territory = (
-            1 * 32 if self.direction == 1 else (game.center_area[-1] + 1) * 32,
+            1 * 32 if self.direction == 1 else (game.state.center_area[-1] + 1) * 32,
             0,
-            (game.center_area[0] - 1) * 32 if self.direction == 1 else ((game.width - 1) - (
-                        game.center_area[-1] + 1)) * 32,
+            (game.state.center_area[0] - 1) * 32 if self.direction == 1 else ((game.width - 1) - (
+                        game.state.center_area[-1] + 1)) * 32,
             game.height * 32
         )
 
@@ -91,6 +89,7 @@ class Player:
         self.reset()
 
     def reset(self):
+
         self.health = self.game.config.mechanics.start_health
         self.gold = self.game.config.mechanics.start_gold
         self.lumber = self.game.config.mechanics.start_lumber
@@ -151,7 +150,7 @@ class Player:
 
         return True
 
-    def do_action(self,):
+    def do_action(self, a):
         # Cannot perform action when game has ended.
         if self.game.winner:
             return False
@@ -167,30 +166,21 @@ class Player:
 
         # Decrements counter each tick and fires income event when counter reaches 0
         self.income_counter -= 1
-        if self.income_counter is 0:
+        if self.income_counter == 0:
             self.gold += self.income
             self.income_counter = self.income_frequency
 
         # Spawn Queue Logic
         # Spawn queued units
         if self.spawn_queue:
-            self.spawn(self.spawn_queue.pop())
+            self.spawn_queue.pop().spawn(self)
 
-        # Process buildings
-        for building in self.buildings:
-            for opp_unit in self.opponent.units:
-                success = building.shoot(opp_unit)
-                if success:
-                    break
-
-        # Process units
+        # Process units and buildings
         for unit in self.units:
+            unit.update()
             if unit.despawn:
                 unit.remove()
                 self.units.remove(unit)
-
-            else:
-                unit.move()
 
     def increase_gold(self, amount):
         self.gold += amount
@@ -257,39 +247,3 @@ class Player:
 
         return True
 
-    def spawn(self, data):
-        idx = data[0] + 1
-        type = data[1]
-
-        # Check if can afford
-        if self.gold >= type.gold_cost:
-            self.gold -= type.gold_cost
-        else:
-            return False
-
-        # Update income
-        self.income += type.gold_cost * self.game.config.mechanics.income_ratio
-
-        spawn_x = self.spawn_x
-        open_spawn_points = [np.where(self.game.map[1][spawn_x] == 0)[0]][0]
-
-        if open_spawn_points.size == 0:
-            # print("No spawn location for unit!")
-            self.spawn_queue.append(data)
-            return False
-
-        spawn_y = np.random.choice(open_spawn_points)
-
-        unit = copy.copy(type)
-        unit.id = idx
-        unit.setup(self)
-        unit.x = spawn_x
-        unit.y = spawn_y
-
-        # Update game state
-        self.game.map[1][spawn_x, spawn_y] = idx
-        self.game.map[2][spawn_x, spawn_y] = self.id
-
-        self.units.append(unit)
-
-        return True

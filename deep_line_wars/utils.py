@@ -2,6 +2,17 @@ from ctypes import cdll, byref, create_string_buffer
 import json
 from collections import namedtuple
 import collections
+import cv2
+from os.path import realpath, dirname, join
+dir_path = dirname(realpath(__file__))
+
+
+def get_icon(icon_path):
+    icon_image = cv2.imread(join(dir_path, icon_path))
+    icon_image = cv2.cvtColor(icon_image, cv2.COLOR_BGR2RGB)
+    icon_image = cv2.resize(icon_image, (32, 32))
+    icon_image = cv2.rotate(icon_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+    return icon_image
 
 
 def set_thread_name(str_name):

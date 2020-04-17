@@ -69,25 +69,13 @@ class GameSurface(pygame.Surface):
             3: (0, 255, 255)
         }
 
-        self.config_draw_friendly = self.game.config.gui_draw_friendly
-
-        # Create rectangles for map
-        """self.map_rects = [[] for x in range(self.game.map[0].shape[0])]
-        for x in range(self.game.map[0].shape[0]):
-            for y in range(self.game.map[0].shape[1]):
-                rect = pygame.Rect(x * 32, (y*32), 32, 32)
-                owned_by = 0 if x < int(self.game.map[0].shape[0] / 2) else 1
-                item = (rect, x, y, self.game.map[0][x][y], owned_by)
-                self.map_rects[x].append(item)
-        """
-
-
+        self.config_draw_friendly = self.game.config.gui.draw_friendly
 
         # Create Static map parts (Mid + goal)
         self.goal_mid = pygame.Surface((self.game.width * 32, self.game.height * 32))
-        for (x, y), v in np.ndenumerate(self.game.map[0]):
-            if v == 1 or v == 2:
-                pygame.draw.rect(self.goal_mid, self.tiles[v], (x * 32, y * 32, 32, 32))
+
+        for (x, y, v) in self.game.state.static_tiles:
+            pygame.draw.rect(self.goal_mid, self.tiles[v], (x * 32, y * 32, 32, 32))
         self.goal_mid = self.goal_mid.convert()
 
 
@@ -118,8 +106,12 @@ class GameSurface(pygame.Surface):
                     continue
 
             for unit in player.units:
-                pos_x = (unit.x * 32) + (32 * (1 - (unit.tick_counter / unit.tick_speed))) * unit.player.direction
+
+                pos_x = (unit.x * 32)
                 pos_y = (unit.y * 32)
+                if unit.speed > 0:
+                    pos_x += (32 * (1 - (unit.tick_counter / unit.tick_speed))) * unit.player.direction
+
                 position = (pos_x, pos_y, 32, 32)
 
                 self.blit(pygame.surfarray.make_surface(unit.icon_image), position)
@@ -212,8 +204,8 @@ class InteractionSurface(pygame.Surface):
 
     def draw_player_select(self):
         # Draws buttons which indicates which player is selected
-        p1_color = (192, 192, 192) if self.selected_player is 0 else (0, 125, 255)
-        p2_color = (192, 192, 192) if self.selected_player is 1 else (0, 125, 255)
+        p1_color = (192, 192, 192) if self.selected_player == 0 else (0, 125, 255)
+        p2_color = (192, 192, 192) if self.selected_player == 1 else (0, 125, 255)
 
         pygame.draw.rect(self, p1_color, self.btn_p1)
         pygame.draw.rect(self, p2_color, self.btn_p2)
@@ -311,11 +303,15 @@ class GUI:
 
         self.i = 0
 
-    def get_state(self, grayscale=False):
+    def get_state(self, grayscale=False, flip=False):
         image = np.array(pygame.surfarray.pixels3d(self.surface_game))
+
         if grayscale:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            image = np.reshape(image, image.shape + (1, ))
+
+        if flip:
+            image = cv2.flip(image, 0)
+
         return image
 
     def player(self):
