@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from deep_line_wars import entity
-from deep_line_wars.shop import Shop
+from . import entity
+from .shop import Shop
 
 
 class BaseActionSpace:

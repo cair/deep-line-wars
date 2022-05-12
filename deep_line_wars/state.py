@@ -1,7 +1,7 @@
 import itertools
 import numpy as np
 
-from deep_line_wars.entity import Entity, Building
+from .entity import Entity, Building
 
 
 class State:

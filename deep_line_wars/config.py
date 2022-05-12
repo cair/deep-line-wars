@@ -1,4 +1,4 @@
-from deep_line_wars.gui import dummy, pygame
+from .gui import dummy, pygame
 
 
 class Config:

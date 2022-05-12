@@ -1,8 +1,8 @@
 import typing
 import logging
 
-from deep_line_wars import entity
-from deep_line_wars.entity import \
+from . import entity
+from .entity import \
     Entity, \
     Militia, \
     Footman, \

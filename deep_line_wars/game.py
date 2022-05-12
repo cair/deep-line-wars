@@ -1,7 +1,7 @@
 import uuid
 import numpy as np
 
-from os.path import realpath, dirname, join
+from os.path import realpath, dirname
 
 import time
 
@@ -33,12 +33,14 @@ class Game:
 
         self.winner = None
 
+
         p1 = Player(1, self)
         p2 = Player(2, self)
         p1.opponent = p2
         p2.opponent = p1
         self.players = [p1, p2]
         self.selected_player = p1
+        self.flipped = False
 
         self.gui = self.config.gui.engine(self)
         self.shop = Shop(self)
@@ -49,7 +51,7 @@ class Game:
         return True if self.winner else False
 
     def step(self, action):
-        
+
         # Perform Action
         self.selected_player.action_space.perform(action)
 

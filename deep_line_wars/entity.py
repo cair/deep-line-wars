@@ -2,11 +2,10 @@ import random
 
 import math
 import typing
-import numpy as np
 import cv2
-import time
 
-from deep_line_wars.utils import get_icon
+
+from .utils import get_icon
 
 
 class Entity:
